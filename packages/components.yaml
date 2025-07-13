@@ -266,6 +266,240 @@ components:
         createdAt: 2023-01-01T00:00:00.000Z
         updatedAt: 2023-01-01T00:00:00.000Z
 
+    ModuleProgress:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          format: objectId
+          description: Module ID
+        status:
+          type: string
+          enum: [completed, inprogress, upcoming]
+          description: Module progress status
+        remark:
+          type: string
+          description: Optional remark about the module
+        score:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Module score (0-100)
+        startDate:
+          type: string
+          format: date-time
+          description: Module start date
+        endDate:
+          type: string
+          format: date-time
+          description: Module completion date
+        dateTakenToComplete:
+          type: number
+          minimum: 0
+          description: Number of days taken to complete the module
+      example:
+        moduleId: 507f1f77bcf86cd799439021
+        status: completed
+        remark: Excellent performance
+        score: 95
+        startDate: 2023-01-01T00:00:00.000Z
+        endDate: 2023-01-05T00:00:00.000Z
+        dateTakenToComplete: 4
+
+    SyllabusProgress:
+      type: object
+      properties:
+        syllabusId:
+          type: string
+          format: objectId
+          description: Syllabus ID
+        modules:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModuleProgress'
+          description: Array of module progress for this syllabus
+      example:
+        syllabusId: 507f1f77bcf86cd799439041
+        modules:
+          - moduleId: 507f1f77bcf86cd799439021
+            status: completed
+            score: 95
+            startDate: 2023-01-01T00:00:00.000Z
+            endDate: 2023-01-05T00:00:00.000Z
+
+    StudentProgress:
+      type: object
+      properties:
+        id:
+          type: string
+          format: objectId
+        studentId:
+          type: string
+          format: objectId
+          description: Student ID
+        classId:
+          type: string
+          format: objectId
+          description: Class ID
+        courseId:
+          type: string
+          format: objectId
+          description: Course ID
+        progress:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Overall progress percentage (0-100)
+        syllabusProgress:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyllabusProgress'
+          description: Array of syllabus progress
+        totalModules:
+          type: number
+          minimum: 0
+          description: Total number of modules
+        completedModules:
+          type: number
+          minimum: 0
+          description: Number of completed modules
+        inProgressModules:
+          type: number
+          minimum: 0
+          description: Number of modules in progress
+        upcomingModules:
+          type: number
+          minimum: 0
+          description: Number of upcoming modules
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      example:
+        id: 507f1f77bcf86cd799439051
+        studentId: 507f1f77bcf86cd799439013
+        classId: 507f1f77bcf86cd799439031
+        courseId: 507f1f77bcf86cd799439012
+        progress: 75
+        syllabusProgress:
+          - syllabusId: 507f1f77bcf86cd799439041
+            modules:
+              - moduleId: 507f1f77bcf86cd799439021
+                status: completed
+                score: 95
+        totalModules: 10
+        completedModules: 7
+        inProgressModules: 2
+        upcomingModules: 1
+        createdAt: 2023-01-01T00:00:00.000Z
+        updatedAt: 2023-01-01T00:00:00.000Z
+
+    UpdateModuleProgress:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          format: objectId
+          required: true
+          description: Module ID to update
+        syllabusId:
+          type: string
+          format: objectId
+          required: true
+          description: Syllabus ID
+        status:
+          type: string
+          enum: [completed, inprogress, upcoming]
+          required: true
+          description: New module status
+        score:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Module score (0-100)
+        remark:
+          type: string
+          description: Optional remark about the module
+      example:
+        moduleId: 507f1f77bcf86cd799439021
+        syllabusId: 507f1f77bcf86cd799439041
+        status: completed
+        score: 95
+        remark: Excellent work
+
+    StartModule:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          format: objectId
+          required: true
+          description: Module ID to start
+        syllabusId:
+          type: string
+          format: objectId
+          required: true
+          description: Syllabus ID
+      example:
+        moduleId: 507f1f77bcf86cd799439021
+        syllabusId: 507f1f77bcf86cd799439041
+
+    EndModule:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          format: objectId
+          required: true
+          description: Module ID to end
+        syllabusId:
+          type: string
+          format: objectId
+          required: true
+          description: Syllabus ID
+        remark:
+          type: string
+          required: true
+          description: Remark about the module completion
+        score:
+          type: number
+          minimum: 0
+          maximum: 100
+          required: true
+          description: Final module score (0-100)
+      example:
+        moduleId: 507f1f77bcf86cd799439021
+        syllabusId: 507f1f77bcf86cd799439041
+        remark: Completed successfully
+        score: 95
+
+    ProgressStatistics:
+      type: object
+      properties:
+        totalStudents:
+          type: number
+          description: Total number of students
+        averageProgress:
+          type: number
+          description: Average progress percentage
+        completedModules:
+          type: number
+          description: Total completed modules
+        inProgressModules:
+          type: number
+          description: Total modules in progress
+        upcomingModules:
+          type: number
+          description: Total upcoming modules
+      example:
+        totalStudents: 25
+        averageProgress: 78.5
+        completedModules: 175
+        inProgressModules: 50
+        upcomingModules: 25
+
   responses:
     BadRequest:
       description: Bad request

@@ -14,7 +14,7 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile
-      target: base
+      target: production
     restart: always
     env_file: .env
     expose:

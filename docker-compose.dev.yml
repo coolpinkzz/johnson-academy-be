@@ -7,6 +7,9 @@ services:
   
   app:
     container_name: ts-node-app-dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     command: yarn dev -L
 
 volumes:

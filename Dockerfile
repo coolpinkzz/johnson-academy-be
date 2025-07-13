@@ -1,26 +1,26 @@
-# development stage
-FROM node:14-alpine as base
+# Development Dockerfile
+FROM node:18
 
+# Set working directory
 WORKDIR /usr/src/app
 
-COPY package.json yarn.lock tsconfig.json ecosystem.config.json ./
+# Copy package files
+COPY package.json yarn.lock ./
 
-COPY ./src ./src
+# Install all dependencies (including dev dependencies)
+RUN yarn install --frozen-lockfile
 
-RUN ls -a
+# Copy source code
+COPY . .
 
-RUN yarn install --pure-lockfile && yarn compile
+# Expose port
+EXPOSE 3000
 
-# production stage
+# Expose debug port
+EXPOSE 9229
 
-FROM base as production
+# Set development environment
+ENV NODE_ENV=development
 
-WORKDIR /usr/prod/app
-
-ENV NODE_ENV=production
-
-COPY package.json yarn.lock ecosystem.config.json ./
-
-RUN yarn install --production --pure-lockfile
-
-COPY --from=base /usr/src/app/dist ./dist
+# Start development server with hot reloading
+CMD ["yarn", "dev"] 

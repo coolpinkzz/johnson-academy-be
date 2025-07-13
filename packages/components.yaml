@@ -55,7 +55,227 @@ components:
         message:
           type: string
 
+    Course:
+      type: object
+      properties:
+        id:
+          type: string
+          format: objectId
+        name:
+          type: string
+        description:
+          type: string
+        syllabus:
+          type: array
+          items:
+            type: string
+            format: objectId
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      example:
+        id: 507f1f77bcf86cd799439011
+        name: Introduction to Programming
+        description: Learn the basics of programming with hands-on exercises
+        syllabus: ["507f1f77bcf86cd799439012", "507f1f77bcf86cd799439013"]
+        createdAt: 2023-01-01T00:00:00.000Z
+        updatedAt: 2023-01-01T00:00:00.000Z
+
+    Module:
+      type: object
+      properties:
+        id:
+          type: string
+          format: objectId
+        syllabusId:
+          type: string
+          format: objectId
+        type:
+          type: string
+          enum: [theory, technical, learning]
+        title:
+          type: string
+        description:
+          type: string
+        session:
+          type: integer
+          minimum: 1
+        resources:
+          type: array
+          items:
+            type: object
+            properties:
+              file:
+                type: string
+              key:
+                type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      example:
+        id: 507f1f77bcf86cd799439021
+        syllabusId: 507f1f77bcf86cd799439011
+        type: theory
+        title: Introduction to Programming Concepts
+        description: Learn the fundamental concepts of programming
+        session: 1
+        resources:
+          - file: https://example.com/video.mp4
+            key: intro_video
+          - file: https://example.com/slides.pdf
+            key: intro_slides
+        createdAt: 2023-01-01T00:00:00.000Z
+        updatedAt: 2023-01-01T00:00:00.000Z
+
+    Class:
+      type: object
+      properties:
+        id:
+          type: string
+          format: objectId
+        name:
+          type: string
+          description: Class name
+        teacherId:
+          type: object
+          properties:
+            _id:
+              type: string
+              format: objectId
+            name:
+              type: string
+            email:
+              type: string
+              format: email
+            role:
+              type: string
+              enum: [teacher]
+          description: Teacher information (populated)
+        courseId:
+          type: object
+          properties:
+            _id:
+              type: string
+              format: objectId
+            title:
+              type: string
+            description:
+              type: string
+          description: Course information (populated)
+        students:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                format: objectId
+              name:
+                type: string
+              email:
+                type: string
+                format: email
+              role:
+                type: string
+                enum: [student]
+          description: Array of enrolled students (populated)
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      example:
+        id: 507f1f77bcf86cd799439031
+        name: "Advanced Mathematics 101"
+        teacherId:
+          _id: 507f1f77bcf86cd799439011
+          name: "Dr. Smith"
+          email: "smith@academy.com"
+          role: "teacher"
+        courseId:
+          _id: 507f1f77bcf86cd799439012
+          title: "Advanced Mathematics"
+          description: "Advanced mathematical concepts and techniques"
+        students:
+          - _id: 507f1f77bcf86cd799439013
+            name: "John Doe"
+            email: "john@student.com"
+            role: "student"
+          - _id: 507f1f77bcf86cd799439014
+            name: "Jane Smith"
+            email: "jane@student.com"
+            role: "student"
+        createdAt: 2023-01-01T00:00:00.000Z
+        updatedAt: 2023-01-01T00:00:00.000Z
+
+    Syllabus:
+      type: object
+      properties:
+        id:
+          type: string
+          format: objectId
+        courseId:
+          type: string
+          format: objectId
+          description: Course ID that this syllabus belongs to
+        title:
+          type: string
+          description: Syllabus title
+        description:
+          type: string
+          description: Syllabus description
+        theory:
+          type: array
+          items:
+            type: string
+            format: objectId
+          description: Array of theory module IDs
+        technical:
+          type: array
+          items:
+            type: string
+            format: objectId
+          description: Array of technical module IDs
+        learning:
+          type: array
+          items:
+            type: string
+            format: objectId
+          description: Array of learning module IDs
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      example:
+        id: 507f1f77bcf86cd799439041
+        courseId: 507f1f77bcf86cd799439011
+        title: "Introduction to Programming Syllabus"
+        description: "Complete syllabus for programming fundamentals"
+        theory: ["507f1f77bcf86cd799439021", "507f1f77bcf86cd799439022"]
+        technical: ["507f1f77bcf86cd799439023"]
+        learning: ["507f1f77bcf86cd799439024"]
+        createdAt: 2023-01-01T00:00:00.000Z
+        updatedAt: 2023-01-01T00:00:00.000Z
+
   responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 400
+            message: Bad request
     DuplicateEmail:
       description: Email already taken
       content:

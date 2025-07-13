@@ -42,3 +42,49 @@ export const deleteUser = catchAsync(async (req: Request, res: Response) => {
     res.status(httpStatus.NO_CONTENT).send();
   }
 });
+
+export const getUsersByRole = catchAsync(async (req: Request, res: Response) => {
+  const { role } = req.query;
+  if (typeof role === 'string') {
+    const users = await userService.getUsersByRole(role);
+    res.send(users);
+  }
+});
+
+export const getStudentsByGradeLevel = catchAsync(async (req: Request, res: Response) => {
+  const { gradeLevel } = req.query;
+  if (typeof gradeLevel === 'string') {
+    const students = await userService.getStudentsByGradeLevel(gradeLevel);
+    res.send(students);
+  }
+});
+
+export const getTeachersByDepartment = catchAsync(async (req: Request, res: Response) => {
+  const { department } = req.query;
+  if (typeof department === 'string') {
+    const teachers = await userService.getTeachersByDepartment(department);
+    res.send(teachers);
+  }
+});
+
+export const getUserByStudentId = catchAsync(async (req: Request, res: Response) => {
+  const { studentId } = req.params;
+  if (typeof studentId === 'string') {
+    const user = await userService.getUserByStudentId(studentId);
+    if (!user) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Student not found');
+    }
+    res.send(user);
+  }
+});
+
+export const getUserByTeacherId = catchAsync(async (req: Request, res: Response) => {
+  const { teacherId } = req.params;
+  if (typeof teacherId === 'string') {
+    const user = await userService.getUserByTeacherId(teacherId);
+    if (!user) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Teacher not found');
+    }
+    res.send(user);
+  }
+});

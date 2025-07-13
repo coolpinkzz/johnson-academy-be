@@ -10,9 +10,8 @@
   },
   "author": "linus wafula saisi <saisilinus.work@gmail.com>",
   "license": "MIT",
-  "type": "module",
   "engines": {
-    "node": ">=14.20.1 <19"
+    "node": ">=14.20.1 <=20.15.0"
   },
   "scripts": {
     "start": "pm2 start ecosystem.config.json --no-daemon",

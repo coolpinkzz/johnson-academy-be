@@ -1,0 +1,19 @@
+import mongoose, { Model, Document } from 'mongoose';
+import { QueryResult } from '../paginate/paginate';
+
+export interface IClasses {
+  name: string;
+  teacherId: mongoose.Types.ObjectId;
+  courseId: mongoose.Types.ObjectId;
+  students: mongoose.Types.ObjectId[];
+}
+
+export interface IClassesDoc extends IClasses, Document {}
+
+export interface IClassesModel extends Model<IClassesDoc> {
+  paginate(filter: Record<string, any>, options: Record<string, any>): Promise<QueryResult>;
+}
+
+export type UpdateClassesBody = Partial<IClasses>;
+
+export type NewCreatedClasses = Omit<IClasses, '_id'>; 

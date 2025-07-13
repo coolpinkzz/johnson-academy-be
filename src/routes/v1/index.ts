@@ -2,6 +2,10 @@ import express, { Router } from 'express';
 import authRoute from './auth.route';
 import docsRoute from './swagger.route';
 import userRoute from './user.route';
+import moduleRoute from './module.route';
+import courseRoute from './course.route';   
+import syllabusRoute from './syllabus.route';
+import classesRoute from './classes.route';
 import config from '../../config/config';
 
 const router = express.Router();
@@ -19,6 +23,22 @@ const defaultIRoute: IRoute[] = [
   {
     path: '/users',
     route: userRoute,
+  },
+  {
+    path: '/modules',
+    route: moduleRoute,
+  },
+  {
+    path: '/courses',
+    route: courseRoute,
+  },
+  {
+    path: '/syllabi',
+    route: syllabusRoute,
+  },
+  {
+    path: '/classes',
+    route: classesRoute,
   },
 ];
 

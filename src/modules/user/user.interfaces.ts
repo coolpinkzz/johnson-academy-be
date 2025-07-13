@@ -7,7 +7,32 @@ export interface IUser {
   email: string;
   password: string;
   role: string;
+  roleNumber?: string;
   isEmailVerified: boolean;
+  // Academy-specific fields
+  studentId?: string;
+  teacherId?: string;
+  department?: string;
+  gradeLevel?: string;
+  subjects?: string[];
+  enrollmentDate?: Date;
+  graduationDate?: Date;
+  isActive: boolean;
+  profilePicture?: string;
+  phoneNumber?: string;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  emergencyContact?: {
+    name: string;
+    relationship: string;
+    phone: string;
+    email: string;
+  };
 }
 
 export interface IUserDoc extends IUser, Document {
@@ -16,12 +41,15 @@ export interface IUserDoc extends IUser, Document {
 
 export interface IUserModel extends Model<IUserDoc> {
   isEmailTaken(email: string, excludeUserId?: mongoose.Types.ObjectId): Promise<boolean>;
+  isStudentIdTaken(studentId: string, excludeUserId?: mongoose.Types.ObjectId): Promise<boolean>;
+  isTeacherIdTaken(teacherId: string, excludeUserId?: mongoose.Types.ObjectId): Promise<boolean>;
+  isRoleNumberTaken(roleNumber: string, excludeUserId?: mongoose.Types.ObjectId): Promise<boolean>;
   paginate(filter: Record<string, any>, options: Record<string, any>): Promise<QueryResult>;
 }
 
 export type UpdateUserBody = Partial<IUser>;
 
-export type NewRegisteredUser = Omit<IUser, 'role' | 'isEmailVerified'>;
+export type NewRegisteredUser = Omit<IUser, 'isEmailVerified' | 'isActive'>;
 
 export type NewCreatedUser = Omit<IUser, 'isEmailVerified'>;
 

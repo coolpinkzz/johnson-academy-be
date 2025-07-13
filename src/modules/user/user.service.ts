@@ -14,6 +14,26 @@ export const createUser = async (userBody: NewCreatedUser): Promise<IUserDoc> =>
   if (await User.isEmailTaken(userBody.email)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
+  
+  // Validate role-specific fields
+  if (userBody.role === 'student' && userBody.studentId) {
+    if (await User.isStudentIdTaken(userBody.studentId)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Student ID already taken');
+    }
+  }
+  
+  if (userBody.role === 'teacher' && userBody.teacherId) {
+    if (await User.isTeacherIdTaken(userBody.teacherId)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Teacher ID already taken');
+    }
+  }
+  
+  if (userBody.role === 'student' && userBody.roleNumber) {
+    if (await User.isRoleNumberTaken(userBody.roleNumber)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Role number already taken');
+    }
+  }
+  
   return User.create(userBody);
 };
 
@@ -26,7 +46,33 @@ export const registerUser = async (userBody: NewRegisteredUser): Promise<IUserDo
   if (await User.isEmailTaken(userBody.email)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
-  return User.create(userBody);
+  
+  // Validate role-specific fields
+  if (userBody.role === 'student' && userBody.studentId) {
+    if (await User.isStudentIdTaken(userBody.studentId)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Student ID already taken');
+    }
+  }
+  
+  if (userBody.role === 'teacher' && userBody.teacherId) {
+    if (await User.isTeacherIdTaken(userBody.teacherId)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Teacher ID already taken');
+    }
+  }
+  
+  if (userBody.role === 'student' && userBody.roleNumber) {
+    if (await User.isRoleNumberTaken(userBody.roleNumber)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Role number already taken');
+    }
+  }
+  
+  // For registration, set isActive to true
+  const userData = {
+    ...userBody,
+    isActive: true,
+  };
+  
+  return User.create(userData);
 };
 
 /**
@@ -71,6 +117,20 @@ export const updateUserById = async (
   if (updateBody.email && (await User.isEmailTaken(updateBody.email, userId))) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
+  
+  // Validate role-specific fields
+  if (updateBody.studentId && (await User.isStudentIdTaken(updateBody.studentId, userId))) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Student ID already taken');
+  }
+  
+  if (updateBody.teacherId && (await User.isTeacherIdTaken(updateBody.teacherId, userId))) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Teacher ID already taken');
+  }
+  
+  if (updateBody.roleNumber && (await User.isRoleNumberTaken(updateBody.roleNumber, userId))) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Role number already taken');
+  }
+  
   Object.assign(user, updateBody);
   await user.save();
   return user;
@@ -88,4 +148,49 @@ export const deleteUserById = async (userId: mongoose.Types.ObjectId): Promise<I
   }
   await user.deleteOne();
   return user;
+};
+
+/**
+ * Get users by role
+ * @param {string} role
+ * @returns {Promise<IUserDoc[]>}
+ */
+export const getUsersByRole = async (role: string): Promise<IUserDoc[]> => {
+  return User.find({ role, isActive: true });
+};
+
+/**
+ * Get students by grade level
+ * @param {string} gradeLevel
+ * @returns {Promise<IUserDoc[]>}
+ */
+export const getStudentsByGradeLevel = async (gradeLevel: string): Promise<IUserDoc[]> => {
+  return User.find({ role: 'student', gradeLevel, isActive: true });
+};
+
+/**
+ * Get teachers by department
+ * @param {string} department
+ * @returns {Promise<IUserDoc[]>}
+ */
+export const getTeachersByDepartment = async (department: string): Promise<IUserDoc[]> => {
+  return User.find({ role: 'teacher', department, isActive: true });
+};
+
+/**
+ * Get user by student ID
+ * @param {string} studentId
+ * @returns {Promise<IUserDoc | null>}
+ */
+export const getUserByStudentId = async (studentId: string): Promise<IUserDoc | null> => {
+  return User.findOne({ studentId, isActive: true });
+};
+
+/**
+ * Get user by teacher ID
+ * @param {string} teacherId
+ * @returns {Promise<IUserDoc | null>}
+ */
+export const getUserByTeacherId = async (teacherId: string): Promise<IUserDoc | null> => {
+  return User.findOne({ teacherId, isActive: true });
 };

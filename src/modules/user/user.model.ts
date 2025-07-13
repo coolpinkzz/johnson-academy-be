@@ -40,11 +40,171 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
     role: {
       type: String,
       enum: roles,
-      default: 'user',
+      required: true,
+    },
+    roleNumber: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: function(this: any, value: string) {
+          // Role number is only required for students
+          if (this.role === 'student' && !value) {
+            return false;
+          }
+          // If value is provided, it should match the format JA/GTR/123456
+          if (value && !value.match(/^JA\/[A-Z]{3}\/\d{6}$/)) {
+            return false;
+          }
+          return true;
+        },
+        message: 'Role number must be in format JA/GTR/123456 and is required for students'
+      }
     },
     isEmailVerified: {
       type: Boolean,
       default: false,
+    },
+    // Academy-specific fields
+    studentId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      validate: {
+        validator: function(this: any, value: string) {
+          if (this.role === 'student' && !value) {
+            return false;
+          }
+          return true;
+        },
+        message: 'Student ID is required for students'
+      }
+    },
+    teacherId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      validate: {
+        validator: function(this: any, value: string) {
+          if (this.role === 'teacher' && !value) {
+            return false;
+          }
+          return true;
+        },
+        message: 'Teacher ID is required for teachers'
+      }
+    },
+    department: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: function(this: any, value: string) {
+          if ((this.role === 'teacher' || this.role === 'admin') && !value) {
+            return false;
+          }
+          return true;
+        },
+        message: 'Department is required for teachers and admins'
+      }
+    },
+    gradeLevel: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: function(this: any, value: string) {
+          if (this.role === 'student' && !value) {
+            return false;
+          }
+          return true;
+        },
+        message: 'Grade level is required for students'
+      }
+    },
+    subjects: [{
+      type: String,
+      trim: true,
+    }],
+    enrollmentDate: {
+      type: Date,
+      validate: {
+        validator: function(this: any, value: Date) {
+          if (this.role === 'student' && !value) {
+            return false;
+          }
+          return true;
+        },
+        message: 'Enrollment date is required for students'
+      }
+    },
+    graduationDate: {
+      type: Date,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    profilePicture: {
+      type: String,
+      trim: true,
+    },
+    phoneNumber: {
+      type: String,
+      trim: true,
+      validate(value: string) {
+        if (value && !validator.isMobilePhone(value)) {
+          throw new Error('Invalid phone number');
+        }
+      },
+    },
+    address: {
+      street: {
+        type: String,
+        trim: true,
+      },
+      city: {
+        type: String,
+        trim: true,
+      },
+      state: {
+        type: String,
+        trim: true,
+      },
+      zipCode: {
+        type: String,
+        trim: true,
+      },
+      country: {
+        type: String,
+        trim: true,
+      },
+    },
+    emergencyContact: {
+      name: {
+        type: String,
+        trim: true,
+      },
+      relationship: {
+        type: String,
+        trim: true,
+      },
+      phone: {
+        type: String,
+        trim: true,
+        validate(value: string) {
+          if (value && !validator.isMobilePhone(value)) {
+            throw new Error('Invalid emergency contact phone number');
+          }
+        },
+      },
+      email: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        validate(value: string) {
+          if (value && !validator.isEmail(value)) {
+            throw new Error('Invalid emergency contact email');
+          }
+        },
+      },
     },
   },
   {
@@ -64,6 +224,39 @@ userSchema.plugin(paginate);
  */
 userSchema.static('isEmailTaken', async function (email: string, excludeUserId: mongoose.ObjectId): Promise<boolean> {
   const user = await this.findOne({ email, _id: { $ne: excludeUserId } });
+  return !!user;
+});
+
+/**
+ * Check if student ID is taken
+ * @param {string} studentId - The student's ID
+ * @param {ObjectId} [excludeUserId] - The id of the user to be excluded
+ * @returns {Promise<boolean>}
+ */
+userSchema.static('isStudentIdTaken', async function (studentId: string, excludeUserId: mongoose.ObjectId): Promise<boolean> {
+  const user = await this.findOne({ studentId, _id: { $ne: excludeUserId } });
+  return !!user;
+});
+
+/**
+ * Check if teacher ID is taken
+ * @param {string} teacherId - The teacher's ID
+ * @param {ObjectId} [excludeUserId] - The id of the user to be excluded
+ * @returns {Promise<boolean>}
+ */
+userSchema.static('isTeacherIdTaken', async function (teacherId: string, excludeUserId: mongoose.ObjectId): Promise<boolean> {
+  const user = await this.findOne({ teacherId, _id: { $ne: excludeUserId } });
+  return !!user;
+});
+
+/**
+ * Check if role number is taken
+ * @param {string} roleNumber - The role number
+ * @param {ObjectId} [excludeUserId] - The id of the user to be excluded
+ * @returns {Promise<boolean>}
+ */
+userSchema.static('isRoleNumberTaken', async function (roleNumber: string, excludeUserId: mongoose.ObjectId): Promise<boolean> {
+  const user = await this.findOne({ roleNumber, _id: { $ne: excludeUserId } });
   return !!user;
 });
 

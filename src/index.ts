@@ -4,7 +4,9 @@ import config from './config/config';
 import logger from './modules/logger/logger';
 
 let server: any;
-mongoose.connect(config.mongoose.url).then(() => {
+
+console.log(config.mongoose.url);
+mongoose.connect('mongodb+srv://masterpratikyadav:Pratik%404897@johnson-academy.aphlfrw.mongodb.net/').then(() => {
   logger.info('Connected to MongoDB');
   server = app.listen(config.port, () => {
     logger.info(`Listening to port ${config.port}`);

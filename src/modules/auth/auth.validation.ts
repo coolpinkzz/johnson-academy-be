@@ -1,11 +1,27 @@
 import Joi from 'joi';
 import { password } from '../validate/custom.validation';
-import { NewRegisteredUser } from '../user/user.interfaces';
+import { roles } from '../../config/roles';
 
-const registerBody: Record<keyof NewRegisteredUser, any> = {
+const registerBody = {
   email: Joi.string().required().email(),
   password: Joi.string().required().custom(password),
   name: Joi.string().required(),
+  role: Joi.string().required().valid(...roles),
+  profilePicture: Joi.string().uri().optional(),
+  phoneNumber: Joi.string().pattern(/^\+?[\d\s-()]+$/).optional(),
+  address: Joi.object({
+    street: Joi.string(),
+    city: Joi.string(),
+    state: Joi.string(),
+    zipCode: Joi.string(),
+    country: Joi.string(),
+  }).optional(),
+  emergencyContact: Joi.object({
+    name: Joi.string(),
+    relationship: Joi.string(),
+    phone: Joi.string().pattern(/^\+?[\d\s-()]+$/),
+    email: Joi.string().email(),
+  }).optional(),
 };
 
 export const register = {

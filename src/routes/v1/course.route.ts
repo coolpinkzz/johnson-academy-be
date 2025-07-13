@@ -14,13 +14,13 @@ router
 
 
 // router
-//   .route('/with-chapters')
-//   .get(auth('getCourses'), courseController.getAllCoursesWithChapters);
+//   .route('/with-syllabus')
+//   .get(auth('getCourses'), courseController.getAllCoursesWithSyllabus);
 
 router
-  .route('/:courseId/chapters/:chapterId')
-  .post(auth('manageCourses'), validate(courseValidation.addChapterToCourse), courseController.addChapterToCourse)
-  .delete(auth('manageCourses'), validate(courseValidation.removeChapterFromCourse), courseController.removeChapterFromCourse);
+  .route('/:courseId/syllabus/:syllabusId')
+  .post(auth('manageCourses'), validate(courseValidation.addSyllabusToCourse), courseController.addSyllabusToCourse)
+  .delete(auth('manageCourses'), validate(courseValidation.removeSyllabusFromCourse), courseController.removeSyllabusFromCourse);
 
 router
   .route('/:courseId')
@@ -67,7 +67,7 @@ export default router;
  *                 items:
  *                   type: string
  *                   format: objectId
- *                 description: Array of syllabus/chapter IDs
+ *                 description: Array of syllabus IDs
  *             example:
  *               name: Introduction to Programming
  *               description: Learn the basics of programming with hands-on exercises
@@ -215,7 +215,7 @@ export default router;
  *                 items:
  *                   type: string
  *                   format: objectId
- *                 description: Array of syllabus/chapter IDs
+ *                 description: Array of syllabus IDs
  *             example:
  *               name: Advanced Programming
  *               description: Advanced programming concepts and techniques
@@ -263,10 +263,10 @@ export default router;
 
 /**
  * @swagger
- * /courses/{courseId}/chapters/{chapterId}:
+ * /courses/{courseId}/syllabus/{syllabusId}:
  *   post:
- *     summary: Add a chapter to a course
- *     description: Only admins can add chapters to courses.
+ *     summary: Add a syllabus to a course
+ *     description: Only admins can add syllabus to courses.
  *     tags: [Courses]
  *     security:
  *       - bearerAuth: []
@@ -279,15 +279,15 @@ export default router;
  *           format: objectId
  *         description: Course ID
  *       - in: path
- *         name: chapterId
+ *         name: syllabusId
  *         required: true
  *         schema:
  *           type: string
  *           format: objectId
- *         description: Chapter/Syllabus ID to add
+ *         description: Syllabus ID to add
  *     responses:
  *       "200":
- *         description: Chapter added to course successfully
+ *         description: Syllabus added to course successfully
  *         content:
  *           application/json:
  *             schema:
@@ -300,8 +300,8 @@ export default router;
  *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
- *     summary: Remove a chapter from a course
- *     description: Only admins can remove chapters from courses.
+ *     summary: Remove a syllabus from a course
+ *     description: Only admins can remove syllabus from courses.
  *     tags: [Courses]
  *     security:
  *       - bearerAuth: []
@@ -314,15 +314,15 @@ export default router;
  *           format: objectId
  *         description: Course ID
  *       - in: path
- *         name: chapterId
+ *         name: syllabusId
  *         required: true
  *         schema:
  *           type: string
  *           format: objectId
- *         description: Chapter/Syllabus ID to remove
+ *         description: Syllabus ID to remove
  *     responses:
  *       "200":
- *         description: Chapter removed from course successfully
+ *         description: Syllabus removed from course successfully
  *         content:
  *           application/json:
  *             schema:

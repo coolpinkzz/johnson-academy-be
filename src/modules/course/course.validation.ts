@@ -6,7 +6,6 @@ const createCourseBody: Record<keyof NewCreatedCourse, any> = {
   name: Joi.string().required(),
   description: Joi.string().required(),
   image: Joi.string().optional(),
-  syllabus: Joi.array().items(Joi.string().custom(objectId)),
 };
 
 export const createCourse = {
@@ -37,7 +36,7 @@ export const updateCourse = {
     .keys({
       name: Joi.string(),
       description: Joi.string(),
-      syllabus: Joi.array().items(Joi.string().custom(objectId)),
+      syllabus: Joi.array().items(Joi.string().custom(objectId)).optional(),
     })
     .min(1),
 };
@@ -50,16 +49,16 @@ export const deleteCourse = {
 
 
 
-export const addChapterToCourse = {
+export const addSyllabusToCourse = {
   params: Joi.object().keys({
     courseId: Joi.string().required().custom(objectId),
-    chapterId: Joi.string().required().custom(objectId),
+    syllabusId: Joi.string().required().custom(objectId),
   }),
 };
 
-export const removeChapterFromCourse = {
+export const removeSyllabusFromCourse = {
   params: Joi.object().keys({
     courseId: Joi.string().required().custom(objectId),
-    chapterId: Joi.string().required().custom(objectId),
+    syllabusId: Joi.string().required().custom(objectId),
   }),
 }; 

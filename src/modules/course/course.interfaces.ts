@@ -16,4 +16,4 @@ export interface ICourseModel extends Model<ICourseDoc> {
 
 export type UpdateCourseBody = Partial<ICourse>;
 
-export type NewCreatedCourse = Omit<ICourse, 'chapters'>; 
+export type NewCreatedCourse = Omit<ICourse, 'syllabus'>; 

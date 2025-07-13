@@ -4,6 +4,7 @@ import Classes from './classes.model';
 import User from '../user/user.model';
 import Course from '../course/course.model';
 import StudentProgress from '../studentProgress/studentProgress.model';
+import StudentAttendance from '../studentAttendance/studentAttendance.model';
 import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedClasses, UpdateClassesBody, IClassesDoc } from './classes.interfaces';
@@ -45,11 +46,18 @@ export const createClasses = async (classesBody: NewCreatedClasses): Promise<ICl
 
   const createdClass = await Classes.create(classesBody);
   
-  // Create progress records for all students added to the class and update user model
+  // Create progress records and attendance records for all students added to the class and update user model
   if (createdClass.students && createdClass.students.length > 0) {
     const progressPromises = createdClass.students.map(async (studentId) => {
       // Create progress record
       const progress = await StudentProgress.createProgressForStudent(studentId, createdClass._id, createdClass.courseId);
+      
+      // Create attendance record with current date as joining date
+      const attendance = await StudentAttendance.create({
+        studentId,
+        classId: createdClass._id,
+        joiningDate: new Date()
+      });
       
       // Update user model to include the class, course, and progress references
       await User.findByIdAndUpdate(
@@ -63,14 +71,14 @@ export const createClasses = async (classesBody: NewCreatedClasses): Promise<ICl
         }
       );
       
-      return progress;
+      return { progress, attendance };
     });
     
     try {
       await Promise.all(progressPromises);
     } catch (error) {
       // Log the error but don't fail the class creation
-      console.error('Failed to create progress records or update user model for some students:', error);
+      console.error('Failed to create progress records, attendance records, or update user model for some students:', error);
     }
   }
   
@@ -187,7 +195,7 @@ export const updateClassesById = async (
       );
     }
     
-    // Add class to new students and create progress records
+    // Add class to new students and create progress records and attendance records
     if (studentsToAdd.length > 0) {
       const progressPromises = studentsToAdd.map(async (studentId) => {
         // Create progress record
@@ -196,6 +204,13 @@ export const updateClassesById = async (
           classesId, 
           classes.courseId
         );
+        
+        // Create attendance record with current date as joining date
+        const attendance = await StudentAttendance.create({
+          studentId: new mongoose.Types.ObjectId(studentId),
+          classId: classesId,
+          joiningDate: new Date()
+        });
         
         // Update user model to include the class, course, and progress references
         await User.findByIdAndUpdate(
@@ -209,13 +224,13 @@ export const updateClassesById = async (
           }
         );
         
-        return progress;
+        return { progress, attendance };
       });
       
       try {
         await Promise.all(progressPromises);
       } catch (error) {
-        console.error('Failed to create progress records or update user model for some students:', error);
+        console.error('Failed to create progress records, attendance records, or update user model for some students:', error);
       }
     }
   }
@@ -302,11 +317,18 @@ export const bulkAddStudentsToClass = async (
     { new: true }
   ).populate('teacherId').populate('courseId').populate('students');
 
-  // Create progress records for newly added students and update user model
+  // Create progress records and attendance records for newly added students and update user model
   if (newStudentIds.length > 0) {
     const progressPromises = newStudentIds.map(async (studentId) => {
       // Create progress record
       const progress = await StudentProgress.createProgressForStudent(studentId, classesId, classes.courseId);
+      
+      // Create attendance record with current date as joining date
+      const attendance = await StudentAttendance.create({
+        studentId: new mongoose.Types.ObjectId(studentId),
+        classId: classesId,
+        joiningDate: new Date()
+      });
       
       // Update user model to include the class, course, and progress references
       await User.findByIdAndUpdate(
@@ -320,14 +342,14 @@ export const bulkAddStudentsToClass = async (
         }
       );
       
-      return progress;
+      return { progress, attendance };
     });
     
     try {
       await Promise.all(progressPromises);
     } catch (error) {
       // Log the error but don't fail the student addition
-      console.error('Failed to create progress records or update user model for some students:', error);
+      console.error('Failed to create progress records, attendance records, or update user model for some students:', error);
     }
   }
 

@@ -6,6 +6,78 @@ import * as classesController from '../../modules/classes/classes.controller';
 
 const router = express.Router();
 
+router
+  .route('/')
+  .post(
+    authMiddleware('manageClasses'), // Only admins can create classes
+    validate(classesValidation.createClasses),
+    classesController.createClasses
+  )
+  .get(
+    authMiddleware('getClasses'), // All authenticated users can view classes
+    validate(classesValidation.getClasses),
+    classesController.getClasses
+  );
+
+router
+  .route('/all')
+  .get(
+    authMiddleware('getClasses'), // All authenticated users can view all classes
+    classesController.getAllClasses
+  );
+
+router
+  .route('/teacher/:teacherId')
+  .get(
+    authMiddleware('getClasses'), // All authenticated users can view classes by teacher
+    validate(classesValidation.getClassesByTeacher),
+    classesController.getClassesByTeacher
+  );
+
+router
+  .route('/course/:courseId')
+  .get(
+    authMiddleware('getClasses'), // All authenticated users can view classes by course
+    validate(classesValidation.getClassesByCourse),
+    classesController.getClassesByCourse
+  );
+
+router
+  .route('/student/:studentId')
+  .get(
+    authMiddleware('getClasses'), // All authenticated users can view classes by student
+    validate(classesValidation.getClassesByStudent),
+    classesController.getClassesByStudent
+  );
+
+router
+  .route('/:classesId')
+  .get(
+    authMiddleware('getClasses'), // All authenticated users can view specific class
+    validate(classesValidation.getClass),
+    classesController.getClass
+  )
+  .patch(
+    authMiddleware('manageClasses'), // Only admins can update classes
+    validate(classesValidation.updateClasses),
+    classesController.updateClasses
+  )
+  .delete(
+    authMiddleware('manageClasses'), // Only admins can delete classes
+    validate(classesValidation.deleteClasses),
+    classesController.deleteClasses
+  );
+
+router
+  .route('/:classesId/students/bulk-add')
+  .post(
+    authMiddleware('manageClasses'), // Only admins can bulk add students to classes
+    validate(classesValidation.bulkAddStudentsToClass),
+    classesController.bulkAddStudentsToClass
+  );
+
+export default router; 
+
 /**
  * @swagger
  * tags:
@@ -432,74 +504,3 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  */
 
-router
-  .route('/')
-  .post(
-    authMiddleware('manageClasses'), // Only admins can create classes
-    validate(classesValidation.createClasses),
-    classesController.createClasses
-  )
-  .get(
-    authMiddleware('getClasses'), // All authenticated users can view classes
-    validate(classesValidation.getClasses),
-    classesController.getClasses
-  );
-
-router
-  .route('/all')
-  .get(
-    authMiddleware('getClasses'), // All authenticated users can view all classes
-    classesController.getAllClasses
-  );
-
-router
-  .route('/teacher/:teacherId')
-  .get(
-    authMiddleware('getClasses'), // All authenticated users can view classes by teacher
-    validate(classesValidation.getClassesByTeacher),
-    classesController.getClassesByTeacher
-  );
-
-router
-  .route('/course/:courseId')
-  .get(
-    authMiddleware('getClasses'), // All authenticated users can view classes by course
-    validate(classesValidation.getClassesByCourse),
-    classesController.getClassesByCourse
-  );
-
-router
-  .route('/student/:studentId')
-  .get(
-    authMiddleware('getClasses'), // All authenticated users can view classes by student
-    validate(classesValidation.getClassesByStudent),
-    classesController.getClassesByStudent
-  );
-
-router
-  .route('/:classesId')
-  .get(
-    authMiddleware('getClasses'), // All authenticated users can view specific class
-    validate(classesValidation.getClass),
-    classesController.getClass
-  )
-  .patch(
-    authMiddleware('manageClasses'), // Only admins can update classes
-    validate(classesValidation.updateClasses),
-    classesController.updateClasses
-  )
-  .delete(
-    authMiddleware('manageClasses'), // Only admins can delete classes
-    validate(classesValidation.deleteClasses),
-    classesController.deleteClasses
-  );
-
-router
-  .route('/:classesId/students/bulk-add')
-  .post(
-    authMiddleware('manageClasses'), // Only admins can bulk add students to classes
-    validate(classesValidation.bulkAddStudentsToClass),
-    classesController.bulkAddStudentsToClass
-  );
-
-export default router; 

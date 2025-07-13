@@ -11,9 +11,9 @@
   email: String,
   role: { type: String, enum: ['student', 'teacher', 'admin'] }, 
   password: String, 
-  classes: [{ 
-    classId: ObjectId,
-  }],
+  classes: [ObjectId],
+  courses:[objectId],
+  progress: [studentProgressId]
   createdAt: Date,
   updatedAt: Date,
 }

@@ -60,38 +60,38 @@ export const deleteCourse = catchAsync(async (req: Request, res: Response) => {
 
 
 
-// export const getAllCoursesWithChapters = catchAsync(async (req: Request, res: Response) => {
+// export const getAllCoursesWithSyllabus = catchAsync(async (req: Request, res: Response) => {
 //   const courses = await courseService.getAllCoursesWithSyllabus();
 //   res.send(courses);
 // });
 
-export const addChapterToCourse = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can add chapters
+export const addSyllabusToCourse = catchAsync(async (req: Request, res: Response) => {
+  // Check if user is admin - only admins can add syllabus
   if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can add chapters to courses');
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can add syllabus to courses');
   }
   
-  const { courseId, chapterId } = req.params;
-  if (typeof courseId === 'string' && typeof chapterId === 'string') {
+  const { courseId, syllabusId } = req.params;
+  if (typeof courseId === 'string' && typeof syllabusId === 'string') {
     const course = await courseService.addSyllabusToCourse(
       new mongoose.Types.ObjectId(courseId),
-      new mongoose.Types.ObjectId(chapterId)
+      new mongoose.Types.ObjectId(syllabusId)
     );
     res.send(course);
   }
 });
 
-export const removeChapterFromCourse = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can remove chapters
+export const removeSyllabusFromCourse = catchAsync(async (req: Request, res: Response) => {
+  // Check if user is admin - only admins can remove syllabus
   if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can remove chapters from courses');
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can remove syllabus from courses');
   }
   
-  const { courseId, chapterId } = req.params;
-  if (typeof courseId === 'string' && typeof chapterId === 'string') {
+  const { courseId, syllabusId } = req.params;
+  if (typeof courseId === 'string' && typeof syllabusId === 'string') {
     const course = await courseService.removeSyllabusFromCourse(
       new mongoose.Types.ObjectId(courseId),
-      new mongoose.Types.ObjectId(chapterId)
+      new mongoose.Types.ObjectId(syllabusId)
     );
     res.send(course);
   }

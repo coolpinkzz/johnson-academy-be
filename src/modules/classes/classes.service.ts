@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import Classes from './classes.model';
 import User from '../user/user.model';
 import Course from '../course/course.model';
+import StudentProgress from '../studentProgress/studentProgress.model';
 import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedClasses, UpdateClassesBody, IClassesDoc } from './classes.interfaces';
@@ -42,7 +43,38 @@ export const createClasses = async (classesBody: NewCreatedClasses): Promise<ICl
     }
   }
 
-  return Classes.create(classesBody);
+  const createdClass = await Classes.create(classesBody);
+  
+  // Create progress records for all students added to the class and update user model
+  if (createdClass.students && createdClass.students.length > 0) {
+    const progressPromises = createdClass.students.map(async (studentId) => {
+      // Create progress record
+      const progress = await StudentProgress.createProgressForStudent(studentId, createdClass._id, createdClass.courseId);
+      
+      // Update user model to include the class, course, and progress references
+      await User.findByIdAndUpdate(
+        studentId,
+        {
+          $addToSet: {
+            classes: createdClass._id,
+            courses: createdClass.courseId,
+            progress: progress._id
+          }
+        }
+      );
+      
+      return progress;
+    });
+    
+    try {
+      await Promise.all(progressPromises);
+    } catch (error) {
+      // Log the error but don't fail the class creation
+      console.error('Failed to create progress records or update user model for some students:', error);
+    }
+  }
+  
+  return createdClass;
 };
 
 /**
@@ -136,6 +168,58 @@ export const updateClassesById = async (
     }
   }
 
+  // Handle student updates and user model synchronization
+  if (updateBody.students) {
+    const currentStudentIds = classes.students.map(student => student.toString());
+    const newStudentIds = updateBody.students.map(id => id.toString());
+    
+    // Find students to add (new students not in current list)
+    const studentsToAdd = newStudentIds.filter(id => !currentStudentIds.includes(id));
+    
+    // Find students to remove (current students not in new list)
+    const studentsToRemove = currentStudentIds.filter(id => !newStudentIds.includes(id));
+    
+    // Remove class from users who are no longer in the class
+    if (studentsToRemove.length > 0) {
+      await User.updateMany(
+        { _id: { $in: studentsToRemove } },
+        { $pull: { classes: classesId } }
+      );
+    }
+    
+    // Add class to new students and create progress records
+    if (studentsToAdd.length > 0) {
+      const progressPromises = studentsToAdd.map(async (studentId) => {
+        // Create progress record
+        const progress = await StudentProgress.createProgressForStudent(
+          new mongoose.Types.ObjectId(studentId), 
+          classesId, 
+          classes.courseId
+        );
+        
+        // Update user model to include the class, course, and progress references
+        await User.findByIdAndUpdate(
+          studentId,
+          {
+            $addToSet: {
+              classes: classesId,
+              courses: classes.courseId,
+              progress: progress._id
+            }
+          }
+        );
+        
+        return progress;
+      });
+      
+      try {
+        await Promise.all(progressPromises);
+      } catch (error) {
+        console.error('Failed to create progress records or update user model for some students:', error);
+      }
+    }
+  }
+
   Object.assign(classes, updateBody);
   await classes.save();
   return classes;
@@ -151,6 +235,15 @@ export const deleteClassesById = async (classesId: mongoose.Types.ObjectId): Pro
   if (!classes) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Class not found');
   }
+  
+  // Remove class from all students' classes array
+  if (classes.students && classes.students.length > 0) {
+    await User.updateMany(
+      { _id: { $in: classes.students } },
+      { $pull: { classes: classesId } }
+    );
+  }
+  
   await classes.deleteOne();
   return classes;
 };
@@ -208,6 +301,35 @@ export const bulkAddStudentsToClass = async (
     { $addToSet: { students: { $each: newStudentIds } } },
     { new: true }
   ).populate('teacherId').populate('courseId').populate('students');
+
+  // Create progress records for newly added students and update user model
+  if (newStudentIds.length > 0) {
+    const progressPromises = newStudentIds.map(async (studentId) => {
+      // Create progress record
+      const progress = await StudentProgress.createProgressForStudent(studentId, classesId, classes.courseId);
+      
+      // Update user model to include the class, course, and progress references
+      await User.findByIdAndUpdate(
+        studentId,
+        {
+          $addToSet: {
+            classes: classesId,
+            courses: classes.courseId,
+            progress: progress._id
+          }
+        }
+      );
+      
+      return progress;
+    });
+    
+    try {
+      await Promise.all(progressPromises);
+    } catch (error) {
+      // Log the error but don't fail the student addition
+      console.error('Failed to create progress records or update user model for some students:', error);
+    }
+  }
 
   return updatedClasses;
 }; 

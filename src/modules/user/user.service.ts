@@ -183,8 +183,8 @@ export const getTeachersByDepartment = async (department: string): Promise<IUser
  * @returns {Promise<IUserDoc | null>}
  */
 export const getUserByStudentId = async (studentId: string): Promise<IUserDoc | null> => {
-  return User.findOne({ studentId, isActive: true });
-};
+  return User.findOne({ _id: studentId, isActive: true }).populate('classes').populate('courses').populate('progress');
+};  
 
 /**
  * Get user by teacher ID

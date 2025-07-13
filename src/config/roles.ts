@@ -13,7 +13,9 @@ const allRoles = {
     'getClasses',
     'manageClasses',
     'viewReports',
-    'manageSystem'
+    'manageSystem',
+    'getStudentProgress',
+    'manageStudentProgress'
   ],
   teacher: [
     'getStudents',
@@ -23,16 +25,20 @@ const allRoles = {
     'getModules',
     'getClasses',
     'viewReports',
-    'manageAssignments'
+    'manageAssignments',
+    'getStudentProgress',
+    'manageStudentProgress'
   ],
   student: [
+    'getStudents',
     'getCourses',
     'getSyllabi',
     'getModules',
     'getClasses',
     'viewAssignments',
     'submitAssignments',
-    'viewGrades'
+    'viewGrades',
+    'getStudentProgress'
   ],
 };
 

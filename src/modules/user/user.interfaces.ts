@@ -33,6 +33,10 @@ export interface IUser {
     phone: string;
     email: string;
   };
+  // Relationship fields
+  classes?: mongoose.Types.ObjectId[];
+  courses?: mongoose.Types.ObjectId[];
+  progress?: mongoose.Types.ObjectId[];
 }
 
 export interface IUserDoc extends IUser, Document {

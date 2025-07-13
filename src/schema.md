@@ -79,21 +79,30 @@
 }
 ```
 
-### 5. Student Channel  
+### 5. Student Progress   
 ```javascript
 {
   _id: ObjectId,
   studentId: ObjectId,
   classId: ObjectId,  
-  chapterProgress: [{
-    chapterId: ObjectId, 
-    status: { type: String, enum: ['Completed', 'In Progress', 'Start', 'Upcoming'] },
-    remark: String,
-    score: Number,
-    startDate: Date,
-    endDate: Date,
-    dateTakenToComplete: Number, 
+  courseId: ObjectId,
+  progress: { type: Number, min: 0, max: 100, default: 0 }, // percentage 1-100
+  syllabusProgress: [{
+    syllabusId: ObjectId,
+    modules: [{
+      moduleId: ObjectId,
+      status: { type: String, enum: ['completed', 'inprogress', 'upcoming'], default: 'upcoming' },
+      remark: String,
+      score: { type: Number, min: 0, max: 100 },
+      startDate: Date,
+      endDate: Date,
+      dateTakenToComplete: { type: Number, min: 0 }, // in days
+    }]
   }],
+  totalModules: { type: Number, required: true, default: 0 },
+  completedModules: { type: Number, required: true, default: 0 },
+  inProgressModules: { type: Number, required: true, default: 0 },
+  upcomingModules: { type: Number, required: true, default: 0 },
   createdAt: Date,
   updatedAt: Date,
 }

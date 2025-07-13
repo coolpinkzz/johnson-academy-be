@@ -206,6 +206,19 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
         },
       },
     },
+    // Relationship fields
+    classes: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Classes',
+    }],
+    courses: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Course',
+    }],
+    progress: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'StudentProgress',
+    }],
   },
   {
     timestamps: true,

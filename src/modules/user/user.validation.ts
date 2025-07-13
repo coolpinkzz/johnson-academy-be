@@ -2,7 +2,7 @@ import Joi from 'joi';
 import { password, objectId } from '../validate/custom.validation';
 import { NewCreatedUser } from './user.interfaces';
 
-const createUserBody: Record<keyof NewCreatedUser, any> = {
+const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 'progress'>, any> = { 
   email: Joi.string().required().email(),
   password: Joi.string().required().custom(password),
   name: Joi.string().required(),

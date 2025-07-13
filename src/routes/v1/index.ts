@@ -7,6 +7,7 @@ import courseRoute from './course.route';
 import syllabusRoute from './syllabus.route';
 import classesRoute from './classes.route';
 import config from '../../config/config';
+import studentProgressRoute from './studentProgress.route';
 
 const router = express.Router();
 
@@ -39,6 +40,10 @@ const defaultIRoute: IRoute[] = [
   {
     path: '/classes',
     route: classesRoute,
+  },
+  {
+    path: '/student-progress',
+    route: studentProgressRoute,
   },
 ];
 

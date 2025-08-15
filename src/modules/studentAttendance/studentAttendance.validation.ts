@@ -1,7 +1,7 @@
 import Joi from 'joi';
 import { objectId } from '../validate/custom.validation';
 
-const createStudentAttendanceBody = {
+export const createStudentAttendanceBody = {
   studentId: Joi.string().custom(objectId).required(),
   classId: Joi.string().custom(objectId).required(),
   presentDates: Joi.array().items(Joi.date()),
@@ -12,8 +12,6 @@ const createStudentAttendanceBody = {
     Joi.string().valid('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
   ),
 };
-
-
 
 export const getStudentAttendance = {
   query: Joi.object().keys({
@@ -74,4 +72,26 @@ export const getAttendanceByClass = {
   params: Joi.object().keys({
     classId: Joi.string().custom(objectId).required(),
   }),
-}; 
+};
+
+export const markAttendancePresent = {
+  params: Joi.object().keys({
+    attendanceId: Joi.string().custom(objectId).required(),
+  }),
+  body: Joi.object().keys({
+    studentId: Joi.string().custom(objectId).required(),
+    classId: Joi.string().custom(objectId).required(),
+    date: Joi.date().required(),
+  }),
+};
+
+export const markAttendanceAbsent = {
+  params: Joi.object().keys({
+    attendanceId: Joi.string().custom(objectId).required(),
+  }),
+  body: Joi.object().keys({
+    studentId: Joi.string().custom(objectId).required(),
+    classId: Joi.string().custom(objectId).required(),
+    date: Joi.date().required(),
+  }),
+};

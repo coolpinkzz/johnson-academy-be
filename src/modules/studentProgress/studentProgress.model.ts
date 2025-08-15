@@ -3,46 +3,52 @@ import toJSON from '../toJSON/toJSON';
 import paginate from '../paginate/paginate';
 import { IStudentProgressDoc, IStudentProgressModel } from './studentProgress.interfaces';
 
-const moduleProgressSchema = new mongoose.Schema({
-  moduleId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-    ref: 'Module',
+const moduleProgressSchema = new mongoose.Schema(
+  {
+    moduleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: 'Module',
+    },
+    status: {
+      type: String,
+      enum: ['completed', 'inprogress', 'upcoming'],
+      default: 'upcoming',
+    },
+    remark: {
+      type: String,
+      trim: true,
+    },
+    score: {
+      type: Number,
+      min: 0,
+      max: 100,
+    },
+    startDate: {
+      type: Date,
+    },
+    endDate: {
+      type: Date,
+    },
+    dateTakenToComplete: {
+      type: Number,
+      min: 0,
+    },
   },
-  status: {
-    type: String,
-    enum: ['completed', 'inprogress', 'upcoming'],
-    default: 'upcoming',
-  },
-  remark: {
-    type: String,
-    trim: true,
-  },
-  score: {
-    type: Number,
-    min: 0,
-    max: 100,
-  },
-  startDate: {
-    type: Date,
-  },
-  endDate: {
-    type: Date,
-  },
-  dateTakenToComplete: {
-    type: Number,
-    min: 0,
-  },
-}, { _id: false });
+  { _id: false }
+);
 
-const syllabusProgressSchema = new mongoose.Schema({
-  syllabusId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-    ref: 'Syllabus',
+const syllabusProgressSchema = new mongoose.Schema(
+  {
+    syllabusId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: 'Syllabus',
+    },
+    modules: [moduleProgressSchema],
   },
-  modules: [moduleProgressSchema],
-}, { _id: false });
+  { _id: false }
+);
 
 const studentProgressSchema = new mongoose.Schema<IStudentProgressDoc, IStudentProgressModel>(
   {
@@ -105,47 +111,50 @@ studentProgressSchema.plugin(paginate);
 /**
  * Calculate progress percentage based on completed modules
  */
-studentProgressSchema.methods['calculateProgress'] = async function(): Promise<number> {
+studentProgressSchema.methods['calculateProgress'] = async function (): Promise<number> {
   if (this['totalModules'] === 0) return 0;
-  
+
   const completedCount = this['syllabusProgress'].reduce((total: number, syllabus: { modules: { status: string }[] }) => {
     return total + syllabus.modules.filter((module: { status: string }) => module.status === 'completed').length;
   }, 0);
-  
+
   this['completedModules'] = completedCount;
-  this['inProgressModules'] = this['syllabusProgress'].reduce((total: number, syllabus: { modules: { status: string }[] }) => {
-    return total + syllabus.modules.filter((module: { status: string }) => module.status === 'inprogress').length;
-  }, 0);
+  this['inProgressModules'] = this['syllabusProgress'].reduce(
+    (total: number, syllabus: { modules: { status: string }[] }) => {
+      return total + syllabus.modules.filter((module: { status: string }) => module.status === 'inprogress').length;
+    },
+    0
+  );
   this['upcomingModules'] = this['totalModules'] - this['completedModules'] - this['inProgressModules'];
-  
+
   this['progress'] = Math.round((completedCount / this['totalModules']) * 100);
   await this['save']();
-  
+
   return this['progress'];
 };
 
 /**
  * Update module status and recalculate progress
  */
-studentProgressSchema.methods['updateModuleStatus'] = async function(
+studentProgressSchema.methods['updateModuleStatus'] = async function (
   moduleId: mongoose.Types.ObjectId,
   status: string,
   score?: number,
   remark?: string
 ): Promise<void> {
   let moduleFound = false;
-  
+
   for (const syllabus of this['syllabusProgress']) {
     const module = syllabus.modules.find((m: { moduleId: mongoose.Types.ObjectId }) => m.moduleId.equals(moduleId));
     if (module) {
       module.status = status as 'completed' | 'inprogress' | 'upcoming';
       if (score !== undefined) module.score = score;
       if (remark !== undefined) module.remark = remark;
-      
+
       if (status === 'inprogress' && !module.startDate) {
         module.startDate = new Date();
       }
-      
+
       if (status === 'completed') {
         module.endDate = new Date();
         if (module.startDate) {
@@ -153,136 +162,142 @@ studentProgressSchema.methods['updateModuleStatus'] = async function(
           module.dateTakenToComplete = Math.ceil(timeDiff / (1000 * 3600 * 24)); // Convert to days
         }
       }
-      
+
       moduleFound = true;
       break;
     }
   }
-  
+
   if (!moduleFound) {
     throw new Error('Module not found in student progress');
   }
-  
+
   await this['calculateProgress']();
 };
 
 /**
  * Find progress by student and class
  */
-studentProgressSchema.static('findByStudentAndClass', async function(
-  studentId: mongoose.Types.ObjectId,
-  classId: mongoose.Types.ObjectId
-): Promise<IStudentProgressDoc | null> {
-  return this['findOne']({ studentId, classId })
-    .populate('studentId', 'name email role')
-    .populate('classId', 'name')
-    .populate('courseId', 'name description')
-    .populate('syllabusProgress.syllabusId', 'title description')
-    .populate('syllabusProgress.modules.moduleId', 'title description type session');
-});
+studentProgressSchema.static(
+  'findByStudentAndClass',
+  async function (
+    studentId: mongoose.Types.ObjectId,
+    classId: mongoose.Types.ObjectId
+  ): Promise<IStudentProgressDoc | null> {
+    return this['findOne']({ studentId, classId })
+      .populate('studentId', 'name email role')
+      .populate('classId', 'name')
+      .populate('courseId', 'name description')
+      .populate('syllabusProgress.syllabusId', 'title description')
+      .populate('syllabusProgress.modules.moduleId', 'title description type session resources');
+  }
+);
 
 /**
  * Find all progress records for a student
  */
-studentProgressSchema.static('findByStudent', async function(
-  studentId: mongoose.Types.ObjectId
-): Promise<IStudentProgressDoc[]> {
+studentProgressSchema.static('findByStudent', async function (studentId: mongoose.Types.ObjectId): Promise<
+  IStudentProgressDoc[]
+> {
   return this['find']({ studentId })
     .populate('studentId', 'name email role')
     .populate('classId', 'name')
     .populate('courseId', 'name description')
     .populate('syllabusProgress.syllabusId', 'title description')
-    .populate('syllabusProgress.modules.moduleId', 'title description type session');
+    .populate('syllabusProgress.modules.moduleId', 'title description type session resources');
 });
 
 /**
  * Find all progress records for a class
  */
-studentProgressSchema.static('findByClass', async function(
-  classId: mongoose.Types.ObjectId
-): Promise<IStudentProgressDoc[]> {
+studentProgressSchema.static('findByClass', async function (classId: mongoose.Types.ObjectId): Promise<
+  IStudentProgressDoc[]
+> {
   return this['find']({ classId })
     .populate('studentId', 'name email role')
     .populate('classId', 'name')
     .populate('courseId', 'name description')
     .populate('syllabusProgress.syllabusId', 'title description')
-    .populate('syllabusProgress.modules.moduleId', 'title description type session');
+    .populate('syllabusProgress.modules.moduleId', 'title description type session resources');
 });
 
 /**
  * Find all progress records for a course
  */
-studentProgressSchema.static('findByCourse', async function(
-  courseId: mongoose.Types.ObjectId
-): Promise<IStudentProgressDoc[]> {
+studentProgressSchema.static('findByCourse', async function (courseId: mongoose.Types.ObjectId): Promise<
+  IStudentProgressDoc[]
+> {
   return this['find']({ courseId })
     .populate('studentId', 'name email role')
     .populate('classId', 'name')
     .populate('courseId', 'name description')
     .populate('syllabusProgress.syllabusId', 'title description')
-    .populate('syllabusProgress.modules.moduleId', 'title description type session');
+    .populate('syllabusProgress.modules.moduleId', 'title description type session resources');
 });
 
 /**
  * Create progress record for a student when added to a class
  */
-studentProgressSchema.static('createProgressForStudent', async function(
-  studentId: mongoose.Types.ObjectId,
-  classId: mongoose.Types.ObjectId,
-  courseId: mongoose.Types.ObjectId
-): Promise<IStudentProgressDoc> {
-  // Import required models
-  const Course = mongoose.model('Course');
-  const Syllabus = mongoose.model('Syllabus');
-  
-  // Get course and its syllabi
-  const course = await Course.findById(courseId);
-  if (!course) {
-    throw new Error('Course not found');
+studentProgressSchema.static(
+  'createProgressForStudent',
+  async function (
+    studentId: mongoose.Types.ObjectId,
+    classId: mongoose.Types.ObjectId,
+    courseId: mongoose.Types.ObjectId
+  ): Promise<IStudentProgressDoc> {
+    // Import required models
+    const Course = mongoose.model('Course');
+    const Syllabus = mongoose.model('Syllabus');
+
+    // Get course and its syllabi
+    const course = await Course.findById(courseId);
+    if (!course) {
+      throw new Error('Course not found');
+    }
+
+    // Get all syllabi for the course
+    const syllabi = await Syllabus.find({ courseId });
+    if (syllabi.length === 0) {
+      throw new Error('No syllabi found for this course');
+    }
+
+    // Calculate total modules across all syllabi
+    let totalModules = 0;
+    const syllabusProgress = [];
+
+    for (const syllabus of syllabi) {
+      const allModuleIds = [...syllabus.theory, ...syllabus.technical, ...syllabus.learning];
+      totalModules += allModuleIds.length;
+
+      // Create module progress entries for this syllabus
+      const moduleProgress = allModuleIds.map((moduleId) => ({
+        moduleId,
+        status: 'upcoming' as const,
+      }));
+
+      syllabusProgress.push({
+        syllabusId: syllabus._id,
+        modules: moduleProgress,
+      });
+    }
+
+    // Create the progress record
+    const progressData = {
+      studentId,
+      classId,
+      courseId,
+      progress: 0,
+      syllabusProgress,
+      totalModules,
+      completedModules: 0,
+      inProgressModules: 0,
+      upcomingModules: totalModules,
+    };
+
+    return this['create'](progressData);
   }
-  
-  // Get all syllabi for the course
-  const syllabi = await Syllabus.find({ courseId });
-  if (syllabi.length === 0) {
-    throw new Error('No syllabi found for this course');
-  }
-  
-  // Calculate total modules across all syllabi
-  let totalModules = 0;
-  const syllabusProgress = [];
-  
-  for (const syllabus of syllabi) {
-    const allModuleIds = [...syllabus.theory, ...syllabus.technical, ...syllabus.learning];
-    totalModules += allModuleIds.length;
-    
-    // Create module progress entries for this syllabus
-    const moduleProgress = allModuleIds.map(moduleId => ({
-      moduleId,
-      status: 'upcoming' as const,
-    }));
-    
-    syllabusProgress.push({
-      syllabusId: syllabus._id,
-      modules: moduleProgress,
-    });
-  }
-  
-  // Create the progress record
-  const progressData = {
-    studentId,
-    classId,
-    courseId,
-    progress: 0,
-    syllabusProgress,
-    totalModules,
-    completedModules: 0,
-    inProgressModules: 0,
-    upcomingModules: totalModules,
-  };
-  
-  return this['create'](progressData);
-});
+);
 
 const StudentProgress = mongoose.model<IStudentProgressDoc, IStudentProgressModel>('StudentProgress', studentProgressSchema);
 
-export default StudentProgress; 
+export default StudentProgress;

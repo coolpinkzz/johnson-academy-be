@@ -15,7 +15,11 @@ const allRoles = {
     'viewReports',
     'manageSystem',
     'getStudentProgress',
-    'manageStudentProgress'
+    'manageStudentProgress',
+    'getAttendance',
+    'manageAttendance',
+    'getMRT',
+    'manageMRT',
   ],
   teacher: [
     'getStudents',
@@ -27,7 +31,11 @@ const allRoles = {
     'viewReports',
     'manageAssignments',
     'getStudentProgress',
-    'manageStudentProgress'
+    'manageStudentProgress',
+    'getAttendance',
+    'manageAttendance',
+    'getMRT',
+    'manageMRT',
   ],
   student: [
     'getStudents',
@@ -38,7 +46,9 @@ const allRoles = {
     'viewAssignments',
     'submitAssignments',
     'viewGrades',
-    'getStudentProgress'
+    'getStudentProgress',
+    'getAttendance',
+    'getMRT',
   ],
 };
 

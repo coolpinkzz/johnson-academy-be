@@ -3,12 +3,13 @@ import authRoute from './auth.route';
 import docsRoute from './swagger.route';
 import userRoute from './user.route';
 import moduleRoute from './module.route';
-import courseRoute from './course.route';   
+import courseRoute from './course.route';
 import syllabusRoute from './syllabus.route';
 import classesRoute from './classes.route';
 import config from '../../config/config';
 import studentProgressRoute from './studentProgress.route';
 import studentAttendanceRoute from './studentAttendance.route';
+import mrtRoute from './mrt.route';
 
 const router = express.Router();
 
@@ -49,6 +50,10 @@ const defaultIRoute: IRoute[] = [
   {
     path: '/student-attendance',
     route: studentAttendanceRoute,
+  },
+  {
+    path: '/mrt',
+    route: mrtRoute,
   },
 ];
 

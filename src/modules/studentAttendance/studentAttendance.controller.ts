@@ -7,8 +7,6 @@ import pick from '../utils/pick';
 import { IOptions } from '../paginate/paginate';
 import * as studentAttendanceService from './studentAttendance.service';
 
-
-
 export const getStudentAttendance = catchAsync(async (req: Request, res: Response) => {
   const filter = pick(req.query, ['studentId', 'classId']);
   const options: IOptions = pick(req.query, ['sortBy', 'limit', 'page', 'projectBy']);
@@ -40,9 +38,7 @@ export const updateStudentAttendance = catchAsync(async (req: Request, res: Resp
 
 export const deleteStudentAttendance = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['attendanceId'] === 'string') {
-    await studentAttendanceService.deleteStudentAttendanceById(
-      new mongoose.Types.ObjectId(req.params['attendanceId'])
-    );
+    await studentAttendanceService.deleteStudentAttendanceById(new mongoose.Types.ObjectId(req.params['attendanceId']));
     res.status(httpStatus.NO_CONTENT).send();
   }
 });
@@ -64,9 +60,7 @@ export const getStudentAttendanceByStudentAndClass = catchAsync(async (req: Requ
 export const getAttendanceByStudent = catchAsync(async (req: Request, res: Response) => {
   const { studentId } = req.params;
   if (typeof studentId === 'string') {
-    const attendance = await studentAttendanceService.getAttendanceByStudent(
-      new mongoose.Types.ObjectId(studentId)
-    );
+    const attendance = await studentAttendanceService.getAttendanceByStudent(new mongoose.Types.ObjectId(studentId));
     res.send(attendance);
   }
 });
@@ -74,9 +68,39 @@ export const getAttendanceByStudent = catchAsync(async (req: Request, res: Respo
 export const getAttendanceByClass = catchAsync(async (req: Request, res: Response) => {
   const { classId } = req.params;
   if (typeof classId === 'string') {
-    const attendance = await studentAttendanceService.getAttendanceByClass(
-      new mongoose.Types.ObjectId(classId)
+    const attendance = await studentAttendanceService.getAttendanceByClass(new mongoose.Types.ObjectId(classId));
+    res.send(attendance);
+  }
+});
+
+export const markAttendancePresent = catchAsync(async (req: Request, res: Response) => {
+  const { attendanceId } = req.params;
+  const { studentId, classId, date } = req.body;
+
+  console.log(attendanceId, studentId, classId, date);
+
+  if (typeof attendanceId === 'string') {
+    const attendance = await studentAttendanceService.markAttendancePresent(
+      new mongoose.Types.ObjectId(attendanceId),
+      new mongoose.Types.ObjectId(studentId),
+      new mongoose.Types.ObjectId(classId),
+      new Date(date)
     );
     res.send(attendance);
   }
-}); 
+});
+
+export const markAttendanceAbsent = catchAsync(async (req: Request, res: Response) => {
+  const { attendanceId } = req.params;
+  const { studentId, classId, date } = req.body;
+
+  if (typeof attendanceId === 'string') {
+    const attendance = await studentAttendanceService.markAttendanceAbsent(
+      new mongoose.Types.ObjectId(attendanceId),
+      new mongoose.Types.ObjectId(studentId),
+      new mongoose.Types.ObjectId(classId),
+      new Date(date)
+    );
+    res.send(attendance);
+  }
+});

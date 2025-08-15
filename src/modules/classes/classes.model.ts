@@ -20,10 +20,12 @@ const classesSchema = new mongoose.Schema<IClassesDoc, IClassesModel>(
       required: true,
       ref: 'Course',
     },
-    students: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    }],
+    students: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
   },
   {
     timestamps: true,
@@ -36,4 +38,4 @@ classesSchema.plugin(paginate);
 
 const Classes = mongoose.model<IClassesDoc, IClassesModel>('Classes', classesSchema);
 
-export default Classes; 
+export default Classes;

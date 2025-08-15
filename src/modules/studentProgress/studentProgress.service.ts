@@ -6,13 +6,13 @@ import Classes from '../classes/classes.model';
 import Course from '../course/course.model';
 import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
-import { 
-  NewCreatedStudentProgress, 
-  UpdateStudentProgressBody, 
+import {
+  NewCreatedStudentProgress,
+  UpdateStudentProgressBody,
   IStudentProgressDoc,
   IUpdateModuleProgressBody,
   IStartModuleBody,
-  IEndModuleBody 
+  IEndModuleBody,
 } from './studentProgress.interfaces';
 
 /**
@@ -20,7 +20,9 @@ import {
  * @param {NewCreatedStudentProgress} studentProgressBody
  * @returns {Promise<IStudentProgressDoc>}
  */
-export const createStudentProgress = async (studentProgressBody: NewCreatedStudentProgress): Promise<IStudentProgressDoc> => {
+export const createStudentProgress = async (
+  studentProgressBody: NewCreatedStudentProgress
+): Promise<IStudentProgressDoc> => {
   // Validate that the student exists and is a student
   const student = await User.findById(studentProgressBody.studentId);
   if (!student) {
@@ -85,13 +87,13 @@ export const queryStudentProgress = async (filter: Record<string, any>, options:
  * @param {mongoose.Types.ObjectId} id
  * @returns {Promise<IStudentProgressDoc | null>}
  */
-export const getStudentProgressById = async (id: mongoose.Types.ObjectId): Promise<IStudentProgressDoc | null> => 
+export const getStudentProgressById = async (id: mongoose.Types.ObjectId): Promise<IStudentProgressDoc | null> =>
   StudentProgress.findById(id)
     .populate('studentId', 'name email role')
     .populate('classId', 'name')
     .populate('courseId', 'name description')
     .populate('syllabusProgress.syllabusId', 'title description')
-    .populate('syllabusProgress.modules.moduleId', 'title description type session');
+    .populate('syllabusProgress.modules.moduleId', 'title description type session resources');
 
 /**
  * Get student progress by student and class
@@ -102,15 +104,14 @@ export const getStudentProgressById = async (id: mongoose.Types.ObjectId): Promi
 export const getStudentProgressByStudentAndClass = async (
   studentId: mongoose.Types.ObjectId,
   classId: mongoose.Types.ObjectId
-): Promise<IStudentProgressDoc | null> => 
-  StudentProgress.findByStudentAndClass(studentId, classId);
+): Promise<IStudentProgressDoc | null> => StudentProgress.findByStudentAndClass(studentId, classId);
 
 /**
  * Get all progress records for a student
  * @param {mongoose.Types.ObjectId} studentId
  * @returns {Promise<IStudentProgressDoc[]>}
  */
-export const getStudentProgressByStudent = async (studentId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc[]> => 
+export const getStudentProgressByStudent = async (studentId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc[]> =>
   StudentProgress.findByStudent(studentId);
 
 /**
@@ -118,7 +119,7 @@ export const getStudentProgressByStudent = async (studentId: mongoose.Types.Obje
  * @param {mongoose.Types.ObjectId} classId
  * @returns {Promise<IStudentProgressDoc[]>}
  */
-export const getStudentProgressByClass = async (classId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc[]> => 
+export const getStudentProgressByClass = async (classId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc[]> =>
   StudentProgress.findByClass(classId);
 
 /**
@@ -126,7 +127,7 @@ export const getStudentProgressByClass = async (classId: mongoose.Types.ObjectId
  * @param {mongoose.Types.ObjectId} courseId
  * @returns {Promise<IStudentProgressDoc[]>}
  */
-export const getStudentProgressByCourse = async (courseId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc[]> => 
+export const getStudentProgressByCourse = async (courseId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc[]> =>
   StudentProgress.findByCourse(courseId);
 
 /**
@@ -164,12 +165,7 @@ export const updateModuleProgress = async (
     throw new ApiError(httpStatus.NOT_FOUND, 'Student progress not found');
   }
 
-  await studentProgress.updateModuleStatus(
-    updateBody.moduleId,
-    updateBody.status,
-    updateBody.score,
-    updateBody.remark
-  );
+  await studentProgress.updateModuleStatus(updateBody.moduleId, updateBody.status, updateBody.score, updateBody.remark);
 
   return studentProgress;
 };
@@ -179,7 +175,9 @@ export const updateModuleProgress = async (
  * @param {mongoose.Types.ObjectId} studentProgressId
  * @returns {Promise<IStudentProgressDoc | null>}
  */
-export const deleteStudentProgressById = async (studentProgressId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc | null> => {
+export const deleteStudentProgressById = async (
+  studentProgressId: mongoose.Types.ObjectId
+): Promise<IStudentProgressDoc | null> => {
   const studentProgress = await getStudentProgressById(studentProgressId);
   if (!studentProgress) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Student progress not found');
@@ -195,7 +193,7 @@ export const deleteStudentProgressById = async (studentProgressId: mongoose.Type
  */
 export const getClassProgressStatistics = async (classId: mongoose.Types.ObjectId): Promise<Object> => {
   const progressRecords = await getStudentProgressByClass(classId);
-  
+
   if (progressRecords.length === 0) {
     return {
       totalStudents: 0,
@@ -207,12 +205,10 @@ export const getClassProgressStatistics = async (classId: mongoose.Types.ObjectI
   }
 
   const totalStudents = progressRecords.length;
-  const averageProgress = Math.round(
-    progressRecords.reduce((sum, record) => sum + record.progress, 0) / totalStudents
-  );
-  const completedStudents = progressRecords.filter(record => record.progress === 100).length;
-  const inProgressStudents = progressRecords.filter(record => record.progress > 0 && record.progress < 100).length;
-  const notStartedStudents = progressRecords.filter(record => record.progress === 0).length;
+  const averageProgress = Math.round(progressRecords.reduce((sum, record) => sum + record.progress, 0) / totalStudents);
+  const completedStudents = progressRecords.filter((record) => record.progress === 100).length;
+  const inProgressStudents = progressRecords.filter((record) => record.progress > 0 && record.progress < 100).length;
+  const notStartedStudents = progressRecords.filter((record) => record.progress === 0).length;
 
   return {
     totalStudents,
@@ -230,7 +226,7 @@ export const getClassProgressStatistics = async (classId: mongoose.Types.ObjectI
  */
 export const getCourseProgressStatistics = async (courseId: mongoose.Types.ObjectId): Promise<Object> => {
   const progressRecords = await getStudentProgressByCourse(courseId);
-  
+
   if (progressRecords.length === 0) {
     return {
       totalStudents: 0,
@@ -242,12 +238,10 @@ export const getCourseProgressStatistics = async (courseId: mongoose.Types.Objec
   }
 
   const totalStudents = progressRecords.length;
-  const averageProgress = Math.round(
-    progressRecords.reduce((sum, record) => sum + record.progress, 0) / totalStudents
-  );
-  const completedStudents = progressRecords.filter(record => record.progress === 100).length;
-  const inProgressStudents = progressRecords.filter(record => record.progress > 0 && record.progress < 100).length;
-  const notStartedStudents = progressRecords.filter(record => record.progress === 0).length;
+  const averageProgress = Math.round(progressRecords.reduce((sum, record) => sum + record.progress, 0) / totalStudents);
+  const completedStudents = progressRecords.filter((record) => record.progress === 100).length;
+  const inProgressStudents = progressRecords.filter((record) => record.progress > 0 && record.progress < 100).length;
+  const notStartedStudents = progressRecords.filter((record) => record.progress === 0).length;
 
   return {
     totalStudents,
@@ -275,7 +269,7 @@ export const startModule = async (
 
   // Find the syllabus progress that contains the module
   const syllabusProgress = studentProgress.syllabusProgress.find(
-    sp => sp.syllabusId.toString() === startBody.syllabusId.toString()
+    (sp) => sp.syllabusId.toString() === startBody.syllabusId.toString()
   );
 
   if (!syllabusProgress) {
@@ -283,9 +277,7 @@ export const startModule = async (
   }
 
   // Find the module in the syllabus
-  const moduleProgress = syllabusProgress.modules.find(
-    mp => mp.moduleId.toString() === startBody.moduleId.toString()
-  );
+  const moduleProgress = syllabusProgress.modules.find((mp) => mp.moduleId.toString() === startBody.moduleId.toString());
 
   if (!moduleProgress) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Module not found in syllabus');
@@ -297,10 +289,7 @@ export const startModule = async (
   }
 
   // Use the existing updateModuleStatus method to update the module
-  await studentProgress.updateModuleStatus(
-    startBody.moduleId,
-    'inprogress'
-  );
+  await studentProgress.updateModuleStatus(startBody.moduleId, 'inprogress');
 
   return studentProgress;
 };
@@ -322,7 +311,7 @@ export const endModule = async (
 
   // Find the syllabus progress that contains the module
   const syllabusProgress = studentProgress.syllabusProgress.find(
-    sp => sp.syllabusId.toString() === endBody.syllabusId.toString()
+    (sp) => sp.syllabusId.toString() === endBody.syllabusId.toString()
   );
 
   if (!syllabusProgress) {
@@ -330,9 +319,7 @@ export const endModule = async (
   }
 
   // Find the module in the syllabus
-  const moduleProgress = syllabusProgress.modules.find(
-    mp => mp.moduleId.toString() === endBody.moduleId.toString()
-  );
+  const moduleProgress = syllabusProgress.modules.find((mp) => mp.moduleId.toString() === endBody.moduleId.toString());
 
   if (!moduleProgress) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Module not found in syllabus');
@@ -349,12 +336,7 @@ export const endModule = async (
   }
 
   // Use the existing updateModuleStatus method to update the module
-  await studentProgress.updateModuleStatus(
-    endBody.moduleId,
-    'completed',
-    endBody.score,
-    endBody.remark
-  );
+  await studentProgress.updateModuleStatus(endBody.moduleId, 'completed', endBody.score, endBody.remark);
 
   return studentProgress;
-}; 
+};

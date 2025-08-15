@@ -3,9 +3,7 @@ import mongoose from 'mongoose';
 import StudentAttendance from './studentAttendance.model';
 import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
-import { NewStudentAttendance, UpdateStudentAttendanceBody, IStudentAttendanceDoc } from './studentAttendance.interfaces';
-
-
+import { UpdateStudentAttendanceBody, IStudentAttendanceDoc } from './studentAttendance.interfaces';
 
 /**
  * Query for student attendance records
@@ -37,9 +35,7 @@ export const getStudentAttendanceByStudentAndClass = async (
   studentId: mongoose.Types.ObjectId,
   classId: mongoose.Types.ObjectId
 ): Promise<IStudentAttendanceDoc | null> => {
-  return StudentAttendance.findOne({ studentId, classId })
-    .populate('studentId')
-    .populate('classId');
+  return StudentAttendance.findOne({ studentId, classId }).populate('studentId').populate('classId');
 };
 
 /**
@@ -66,7 +62,9 @@ export const updateStudentAttendanceById = async (
  * @param {mongoose.Types.ObjectId} attendanceId
  * @returns {Promise<IStudentAttendanceDoc | null>}
  */
-export const deleteStudentAttendanceById = async (attendanceId: mongoose.Types.ObjectId): Promise<IStudentAttendanceDoc | null> => {
+export const deleteStudentAttendanceById = async (
+  attendanceId: mongoose.Types.ObjectId
+): Promise<IStudentAttendanceDoc | null> => {
   const attendance = await getStudentAttendanceById(attendanceId);
   if (!attendance) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Student attendance record not found');
@@ -91,4 +89,99 @@ export const getAttendanceByStudent = async (studentId: mongoose.Types.ObjectId)
  */
 export const getAttendanceByClass = async (classId: mongoose.Types.ObjectId): Promise<IStudentAttendanceDoc[]> => {
   return StudentAttendance.find({ classId }).populate('studentId').populate('classId');
-}; 
+};
+
+/**
+ * Mark student attendance as present for a specific date
+ * @param {mongoose.Types.ObjectId} attendanceId
+ * @param {mongoose.Types.ObjectId} studentId
+ * @param {mongoose.Types.ObjectId} classId
+ * @param {Date} date
+ * @returns {Promise<IStudentAttendanceDoc | null>}
+ */
+export const markAttendancePresent = async (
+  attendanceId: mongoose.Types.ObjectId,
+  studentId: mongoose.Types.ObjectId,
+  classId: mongoose.Types.ObjectId,
+  date: Date
+): Promise<IStudentAttendanceDoc | null> => {
+  const attendance = await getStudentAttendanceById(attendanceId);
+  if (!attendance) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Student attendance record not found');
+  }
+
+  // Verify the attendance record belongs to the specified student and class
+  if (
+    attendance.studentId._id.toString() !== studentId.toString() ||
+    attendance.classId._id.toString() !== classId.toString()
+  ) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Attendance record does not match the specified student and class');
+  }
+
+  // Check if date is already marked as present
+  const isAlreadyPresent = attendance.presentDates.some((presentDate) => presentDate.toDateString() === date.toDateString());
+
+  if (isAlreadyPresent) {
+    throw new ApiError(httpStatus.CONFLICT, 'Attendance for this date is already marked as present');
+  }
+
+  // Remove from absentDates if it exists there
+  attendance.absentDates = attendance.absentDates.filter((absentDate) => absentDate.toDateString() !== date.toDateString());
+
+  // Add to presentDates
+  attendance.presentDates.push(date);
+
+  // Update lastDate
+  attendance.lastDate = date;
+
+  await attendance.save();
+  return attendance;
+};
+
+/**
+ * Mark student attendance as absent for a specific date
+ * @param {mongoose.Types.ObjectId} attendanceId
+ * @param {mongoose.Types.ObjectId} studentId
+ * @param {mongoose.Types.ObjectId} classId
+ * @param {Date} date
+ * @returns {Promise<IStudentAttendanceDoc | null>}
+ */
+export const markAttendanceAbsent = async (
+  attendanceId: mongoose.Types.ObjectId,
+  studentId: mongoose.Types.ObjectId,
+  classId: mongoose.Types.ObjectId,
+  date: Date
+): Promise<IStudentAttendanceDoc | null> => {
+  const attendance = await getStudentAttendanceById(attendanceId);
+  if (!attendance) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Student attendance record not found');
+  }
+  // Verify the attendance record belongs to the specified student and class
+  if (
+    attendance.studentId._id.toString() !== studentId.toString() ||
+    attendance.classId._id.toString() !== classId.toString()
+  ) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Attendance record does not match the specified student and class');
+  }
+
+  // Check if date is already marked as absent
+  const isAlreadyAbsent = attendance.absentDates.some((absentDate) => absentDate.toDateString() === date.toDateString());
+
+  if (isAlreadyAbsent) {
+    throw new ApiError(httpStatus.CONFLICT, 'Attendance for this date is already marked as absent');
+  }
+
+  // Remove from presentDates if it exists there
+  attendance.presentDates = attendance.presentDates.filter(
+    (presentDate) => presentDate.toDateString() !== date.toDateString()
+  );
+
+  // Add to absentDates
+  attendance.absentDates.push(date);
+
+  // Update lastDate
+  attendance.lastDate = date;
+
+  await attendance.save();
+  return attendance;
+};

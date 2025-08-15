@@ -7,25 +7,69 @@ const router: Router = express.Router();
 
 router
   .route('/')
-  .get(auth('getAttendance'), validate(studentAttendanceValidation.getStudentAttendance), studentAttendanceController.getStudentAttendance);
+  .get(
+    auth('getAttendance'),
+    validate(studentAttendanceValidation.getStudentAttendance),
+    studentAttendanceController.getStudentAttendance
+  );
 
 router
   .route('/student/:studentId/class/:classId')
-  .get(auth('getAttendance'), validate(studentAttendanceValidation.getStudentAttendanceByStudentAndClass), studentAttendanceController.getStudentAttendanceByStudentAndClass);
+  .get(
+    auth('getAttendance'),
+    validate(studentAttendanceValidation.getStudentAttendanceByStudentAndClass),
+    studentAttendanceController.getStudentAttendanceByStudentAndClass
+  );
 
 router
   .route('/student/:studentId')
-  .get(auth('getAttendance'), validate(studentAttendanceValidation.getAttendanceByStudent), studentAttendanceController.getAttendanceByStudent);
+  .get(
+    auth('getAttendance'),
+    validate(studentAttendanceValidation.getAttendanceByStudent),
+    studentAttendanceController.getAttendanceByStudent
+  );
 
 router
   .route('/class/:classId')
-  .get(auth('getAttendance'), validate(studentAttendanceValidation.getAttendanceByClass), studentAttendanceController.getAttendanceByClass);
+  .get(
+    auth('getAttendance'),
+    validate(studentAttendanceValidation.getAttendanceByClass),
+    studentAttendanceController.getAttendanceByClass
+  );
 
 router
   .route('/:attendanceId')
-  .get(auth('getAttendance'), validate(studentAttendanceValidation.getStudentAttendanceById), studentAttendanceController.getStudentAttendanceById)
-  .patch(auth('manageAttendance'), validate(studentAttendanceValidation.updateStudentAttendance), studentAttendanceController.updateStudentAttendance)
-  .delete(auth('manageAttendance'), validate(studentAttendanceValidation.deleteStudentAttendance), studentAttendanceController.deleteStudentAttendance);
+  .get(
+    auth('getAttendance'),
+    validate(studentAttendanceValidation.getStudentAttendanceById),
+    studentAttendanceController.getStudentAttendanceById
+  )
+  .patch(
+    auth('manageAttendance'),
+    validate(studentAttendanceValidation.updateStudentAttendance),
+    studentAttendanceController.updateStudentAttendance
+  )
+  .delete(
+    auth('manageAttendance'),
+    validate(studentAttendanceValidation.deleteStudentAttendance),
+    studentAttendanceController.deleteStudentAttendance
+  );
+
+router
+  .route('/:attendanceId/present')
+  .post(
+    auth('manageAttendance'),
+    validate(studentAttendanceValidation.markAttendancePresent),
+    studentAttendanceController.markAttendancePresent
+  );
+
+router
+  .route('/:attendanceId/absent')
+  .post(
+    auth('manageAttendance'),
+    validate(studentAttendanceValidation.markAttendanceAbsent),
+    studentAttendanceController.markAttendanceAbsent
+  );
 
 export default router;
 
@@ -313,4 +357,116 @@ export default router;
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
- */ 
+ */
+
+/**
+ * @swagger
+ * /student-attendance/{id}/present:
+ *   post:
+ *     summary: Mark student attendance as present
+ *     description: Mark a student as present for a specific date. Only authorized users can mark attendance.
+ *     tags: [StudentAttendance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Attendance record ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studentId
+ *               - classId
+ *               - date
+ *             properties:
+ *               studentId:
+ *                 type: string
+ *                 description: Student ID
+ *               classId:
+ *                 type: string
+ *                 description: Class ID
+ *               date:
+ *                 type: string
+ *                 format: date
+ *                 description: Date for marking attendance
+ *     responses:
+ *       "200":
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *                $ref: '#/components/schemas/StudentAttendance'
+ *       "400":
+ *         description: Bad request - Attendance record does not match student/class or date already marked
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ *       "409":
+ *         description: Conflict - Attendance already marked for this date
+ */
+
+/**
+ * @swagger
+ * /student-attendance/{id}/absent:
+ *   post:
+ *     summary: Mark student attendance as absent
+ *     description: Mark a student as absent for a specific date. Only authorized users can mark attendance.
+ *     tags: [StudentAttendance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Attendance record ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studentId
+ *               - classId
+ *               - date
+ *             properties:
+ *               studentId:
+ *                 type: string
+ *                 description: Student ID
+ *               classId:
+ *                 type: string
+ *                 description: Class ID
+ *               date:
+ *                 type: string
+ *                 format: date
+ *                 description: Date for marking attendance
+ *     responses:
+ *       "200":
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *                $ref: '#/components/schemas/StudentAttendance'
+ *       "400":
+ *         description: Bad request - Attendance record does not match student/class or date already marked
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ *       "409":
+ *         description: Conflict - Attendance already marked for this date
+ */

@@ -105,6 +105,7 @@
     "typescript": "^4.5.4"
   },
   "dependencies": {
+    "@types/multer": "^2.0.0",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
@@ -115,11 +116,13 @@
     "express-rate-limit": "^5.5.1",
     "helmet": "^4.6.0",
     "http-status": "^1.5.0",
+    "imagekit": "^6.0.0",
     "joi": "^17.5.0",
     "jsonwebtoken": "^9.0.0",
     "moment": "^2.29.4",
     "mongoose": "^7.0.2",
     "morgan": "^1.10.0",
+    "multer": "^2.0.2",
     "nodemailer": "^6.7.2",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.0",

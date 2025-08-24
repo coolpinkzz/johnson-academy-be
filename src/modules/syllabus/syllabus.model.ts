@@ -20,18 +20,6 @@ const syllabusSchema = new mongoose.Schema<ISyllabusDoc, ISyllabusModel>(
       required: true,
       trim: true,
     },
-    theory: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Module',
-    }],
-    technical: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Module',
-    }],
-    learning: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Module',
-    }],
   },
   {
     timestamps: true,
@@ -44,4 +32,4 @@ syllabusSchema.plugin(paginate);
 
 const Syllabus = mongoose.model<ISyllabusDoc, ISyllabusModel>('Syllabus', syllabusSchema);
 
-export default Syllabus; 
+export default Syllabus;

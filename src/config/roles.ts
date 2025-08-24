@@ -20,6 +20,7 @@ const allRoles = {
     'manageAttendance',
     'getMRT',
     'manageMRT',
+    'uploadFiles',
   ],
   teacher: [
     'getStudents',
@@ -36,6 +37,7 @@ const allRoles = {
     'manageAttendance',
     'getMRT',
     'manageMRT',
+    'uploadFiles',
   ],
   student: [
     'getStudents',
@@ -49,6 +51,7 @@ const allRoles = {
     'getStudentProgress',
     'getAttendance',
     'getMRT',
+    'uploadFiles',
   ],
 };
 

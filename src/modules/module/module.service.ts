@@ -12,12 +12,7 @@ import { QueryResult } from '../paginate/paginate';
  * @returns {Promise<IModuleDoc>}
  */
 export const createModule = async (moduleBody: NewCreatedModule): Promise<IModuleDoc> => {
-  // Validate that the syllabus exists
-  const syllabus = await Syllabus.findById(moduleBody.syllabusId);
-  if (!syllabus) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Syllabus not found');
-  }
-  
+  // syllabus is optional
   return Module.create(moduleBody);
 };
 
@@ -32,14 +27,14 @@ export const createModulesBulk = async (moduleBodies: NewCreatedModule[]): Promi
   }
 
   // Validate that all syllabi exist
-  const syllabusIds = [...new Set(moduleBodies.map(module => module.syllabusId))];
+  const syllabusIds = [...new Set(moduleBodies.map((module) => module.syllabusId))];
   const existingSyllabi = await Syllabus.find({
-    _id: { $in: syllabusIds }
+    _id: { $in: syllabusIds },
   });
 
   if (existingSyllabi.length !== syllabusIds.length) {
-    const existingSyllabusIds = existingSyllabi.map(syllabus => syllabus._id.toString());
-    const missingSyllabusIds = syllabusIds.filter(id => !existingSyllabusIds.includes(id.toString()));
+    const existingSyllabusIds = existingSyllabi.map((syllabus) => syllabus._id.toString());
+    const missingSyllabusIds = syllabusIds.filter((id) => id && !existingSyllabusIds.includes(id.toString()));
     throw new ApiError(httpStatus.NOT_FOUND, `Syllabi not found: ${missingSyllabusIds.join(', ')}`);
   }
 
@@ -58,7 +53,15 @@ export const createModulesBulk = async (moduleBodies: NewCreatedModule[]): Promi
  * @returns {Promise<QueryResult>}
  */
 export const queryModules = async (filter: Record<string, any>, options: Record<string, any>): Promise<QueryResult> => {
-  const modules = await Module.paginate(filter, options);
+  // Transform the filter to handle partial title matching
+  const transformedFilter = { ...filter };
+
+  if (transformedFilter['title']) {
+    // Convert title filter to case-insensitive regex for partial matching
+    transformedFilter['title'] = { $regex: transformedFilter['title'], $options: 'i' };
+  }
+
+  const modules = await Module.paginate(transformedFilter, options);
   return modules;
 };
 
@@ -94,7 +97,7 @@ export const updateModuleById = async (
   if (!module) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Module not found');
   }
-  
+
   // Validate syllabusId if it's being updated
   if (updateBody.syllabusId) {
     const syllabus = await Syllabus.findById(updateBody.syllabusId);
@@ -102,7 +105,7 @@ export const updateModuleById = async (
       throw new ApiError(httpStatus.NOT_FOUND, 'Syllabus not found');
     }
   }
-  
+
   Object.assign(module, updateBody);
   await module.save();
   return module;
@@ -138,4 +141,4 @@ export const getModulesBySyllabusId = async (syllabusId: mongoose.Types.ObjectId
  */
 export const getModulesByType = async (type: 'theory' | 'technical' | 'learning'): Promise<IModuleDoc[]> => {
   return Module.find({ type }).populate('syllabusId');
-}; 
+};

@@ -6,9 +6,13 @@ const registerBody = {
   email: Joi.string().required().email(),
   password: Joi.string().required().custom(password),
   name: Joi.string().required(),
-  role: Joi.string().required().valid(...roles),
-  profilePicture: Joi.string().uri().optional(),
-  phoneNumber: Joi.string().pattern(/^\+?[\d\s-()]+$/).optional(),
+  role: Joi.string()
+    .required()
+    .valid(...roles),
+  profilePicture: Joi.string().uri().allow(null).optional(),
+  phoneNumber: Joi.string()
+    .pattern(/^\+?[\d\s-()]+$/)
+    .optional(),
   address: Joi.object({
     street: Joi.string(),
     city: Joi.string(),

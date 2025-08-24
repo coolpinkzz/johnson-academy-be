@@ -3,24 +3,27 @@ import toJSON from '../toJSON/toJSON';
 import paginate from '../paginate/paginate';
 import { IModuleDoc, IModuleModel } from './module.interfaces';
 
-const moduleResourceSchema = new mongoose.Schema({
-  file: {
-    type: String,
-    required: true,
-    trim: true,
+const moduleResourceSchema = new mongoose.Schema(
+  {
+    file: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    key: {
+      type: String,
+      required: false,
+      trim: true,
+    },
   },
-  key: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-}, { _id: false });
+  { _id: false }
+);
 
 const moduleSchema = new mongoose.Schema<IModuleDoc, IModuleModel>(
   {
     syllabusId: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      required: false,
       ref: 'Syllabus',
     },
     type: {
@@ -55,4 +58,4 @@ moduleSchema.plugin(paginate);
 
 const Module = mongoose.model<IModuleDoc, IModuleModel>('Module', moduleSchema);
 
-export default Module; 
+export default Module;

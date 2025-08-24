@@ -11,16 +11,14 @@ router
   .post(auth('manageCourses'), validate(courseValidation.createCourse), courseController.createCourse)
   .get(auth('getCourses'), validate(courseValidation.getCourses), courseController.getCourses);
 
-
-
-// router
-//   .route('/with-syllabus')
-//   .get(auth('getCourses'), courseController.getAllCoursesWithSyllabus);
-
 router
   .route('/:courseId/syllabus/:syllabusId')
   .post(auth('manageCourses'), validate(courseValidation.addSyllabusToCourse), courseController.addSyllabusToCourse)
-  .delete(auth('manageCourses'), validate(courseValidation.removeSyllabusFromCourse), courseController.removeSyllabusFromCourse);
+  .delete(
+    auth('manageCourses'),
+    validate(courseValidation.removeSyllabusFromCourse),
+    courseController.removeSyllabusFromCourse
+  );
 
 router
   .route('/:courseId')
@@ -333,4 +331,4 @@ export default router;
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
- */ 
+ */

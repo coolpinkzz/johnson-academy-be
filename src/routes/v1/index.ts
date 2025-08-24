@@ -10,6 +10,7 @@ import config from '../../config/config';
 import studentProgressRoute from './studentProgress.route';
 import studentAttendanceRoute from './studentAttendance.route';
 import mrtRoute from './mrt.route';
+import uploadRoute from './upload.route';
 
 const router = express.Router();
 
@@ -54,6 +55,10 @@ const defaultIRoute: IRoute[] = [
   {
     path: '/mrt',
     route: mrtRoute,
+  },
+  {
+    path: '/upload',
+    route: uploadRoute,
   },
 ];
 

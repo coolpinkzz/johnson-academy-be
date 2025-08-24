@@ -6,9 +6,6 @@ const createSyllabusBody: Record<keyof NewCreatedSyllabus, any> = {
   courseId: Joi.string().custom(objectId).required(),
   title: Joi.string().required(),
   description: Joi.string().required(),
-  theory: Joi.array().items(Joi.string().custom(objectId)).optional(),
-  technical: Joi.array().items(Joi.string().custom(objectId)).optional(),
-  learning: Joi.array().items(Joi.string().custom(objectId)).optional(),
 };
 
 export const createSyllabus = {
@@ -72,12 +69,15 @@ export const bulkAddModulesToSyllabus = {
 
 export const bulkAddModulesToMultipleSyllabi = {
   body: Joi.object().keys({
-    bulkData: Joi.array().items(
-      Joi.object().keys({
-        syllabusId: Joi.string().custom(objectId).required(),
-        category: Joi.string().valid('theory', 'technical', 'learning').required(),
-        moduleIds: Joi.array().items(Joi.string().custom(objectId)).min(1).required(),
-      })
-    ).min(1).required(),
+    bulkData: Joi.array()
+      .items(
+        Joi.object().keys({
+          syllabusId: Joi.string().custom(objectId).required(),
+          category: Joi.string().valid('theory', 'technical', 'learning').required(),
+          moduleIds: Joi.array().items(Joi.string().custom(objectId)).min(1).required(),
+        })
+      )
+      .min(1)
+      .required(),
   }),
-}; 
+};

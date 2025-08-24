@@ -46,7 +46,7 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
       type: String,
       trim: true,
       validate: {
-        validator: function(this: any, value: string) {
+        validator: function (this: any, value: string) {
           // Role number is only required for students
           if (this.role === 'student' && !value) {
             return false;
@@ -57,8 +57,8 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
           }
           return true;
         },
-        message: 'Role number must be in format JA/GTR/123456 and is required for students'
-      }
+        message: 'Role number must be in format JA/GTR/123456 and is required for students',
+      },
     },
     isEmailVerified: {
       type: Boolean,
@@ -70,70 +70,72 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
       unique: true,
       sparse: true,
       validate: {
-        validator: function(this: any, value: string) {
+        validator: function (this: any, value: string) {
           if (this.role === 'student' && !value) {
             return false;
           }
           return true;
         },
-        message: 'Student ID is required for students'
-      }
+        message: 'Student ID is required for students',
+      },
     },
     teacherId: {
       type: String,
       unique: true,
       sparse: true,
       validate: {
-        validator: function(this: any, value: string) {
+        validator: function (this: any, value: string) {
           if (this.role === 'teacher' && !value) {
             return false;
           }
           return true;
         },
-        message: 'Teacher ID is required for teachers'
-      }
+        message: 'Teacher ID is required for teachers',
+      },
     },
     department: {
       type: String,
       trim: true,
       validate: {
-        validator: function(this: any, value: string) {
+        validator: function (this: any, value: string) {
           if ((this.role === 'teacher' || this.role === 'admin') && !value) {
             return false;
           }
           return true;
         },
-        message: 'Department is required for teachers and admins'
-      }
+        message: 'Department is required for teachers and admins',
+      },
     },
     gradeLevel: {
       type: String,
       trim: true,
       validate: {
-        validator: function(this: any, value: string) {
+        validator: function (this: any, value: string) {
           if (this.role === 'student' && !value) {
             return false;
           }
           return true;
         },
-        message: 'Grade level is required for students'
-      }
+        message: 'Grade level is required for students',
+      },
     },
-    subjects: [{
-      type: String,
-      trim: true,
-    }],
+    subjects: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
     enrollmentDate: {
       type: Date,
       validate: {
-        validator: function(this: any, value: Date) {
+        validator: function (this: any, value: Date) {
           if (this.role === 'student' && !value) {
             return false;
           }
           return true;
         },
-        message: 'Enrollment date is required for students'
-      }
+        message: 'Enrollment date is required for students',
+      },
     },
     graduationDate: {
       type: Date,
@@ -144,6 +146,7 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
     },
     profilePicture: {
       type: String,
+      default: null,
       trim: true,
     },
     phoneNumber: {
@@ -207,18 +210,24 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
       },
     },
     // Relationship fields
-    classes: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Classes',
-    }],
-    courses: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Course',
-    }],
-    progress: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'StudentProgress',
-    }],
+    classes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Classes',
+      },
+    ],
+    courses: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Course',
+      },
+    ],
+    progress: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'StudentProgress',
+      },
+    ],
   },
   {
     timestamps: true,
@@ -246,10 +255,13 @@ userSchema.static('isEmailTaken', async function (email: string, excludeUserId: 
  * @param {ObjectId} [excludeUserId] - The id of the user to be excluded
  * @returns {Promise<boolean>}
  */
-userSchema.static('isStudentIdTaken', async function (studentId: string, excludeUserId: mongoose.ObjectId): Promise<boolean> {
-  const user = await this.findOne({ studentId, _id: { $ne: excludeUserId } });
-  return !!user;
-});
+userSchema.static(
+  'isStudentIdTaken',
+  async function (studentId: string, excludeUserId: mongoose.ObjectId): Promise<boolean> {
+    const user = await this.findOne({ studentId, _id: { $ne: excludeUserId } });
+    return !!user;
+  }
+);
 
 /**
  * Check if teacher ID is taken
@@ -257,10 +269,13 @@ userSchema.static('isStudentIdTaken', async function (studentId: string, exclude
  * @param {ObjectId} [excludeUserId] - The id of the user to be excluded
  * @returns {Promise<boolean>}
  */
-userSchema.static('isTeacherIdTaken', async function (teacherId: string, excludeUserId: mongoose.ObjectId): Promise<boolean> {
-  const user = await this.findOne({ teacherId, _id: { $ne: excludeUserId } });
-  return !!user;
-});
+userSchema.static(
+  'isTeacherIdTaken',
+  async function (teacherId: string, excludeUserId: mongoose.ObjectId): Promise<boolean> {
+    const user = await this.findOne({ teacherId, _id: { $ne: excludeUserId } });
+    return !!user;
+  }
+);
 
 /**
  * Check if role number is taken
@@ -268,10 +283,13 @@ userSchema.static('isTeacherIdTaken', async function (teacherId: string, exclude
  * @param {ObjectId} [excludeUserId] - The id of the user to be excluded
  * @returns {Promise<boolean>}
  */
-userSchema.static('isRoleNumberTaken', async function (roleNumber: string, excludeUserId: mongoose.ObjectId): Promise<boolean> {
-  const user = await this.findOne({ roleNumber, _id: { $ne: excludeUserId } });
-  return !!user;
-});
+userSchema.static(
+  'isRoleNumberTaken',
+  async function (roleNumber: string, excludeUserId: mongoose.ObjectId): Promise<boolean> {
+    const user = await this.findOne({ roleNumber, _id: { $ne: excludeUserId } });
+    return !!user;
+  }
+);
 
 /**
  * Check if password matches the user's password

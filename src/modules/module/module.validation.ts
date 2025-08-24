@@ -4,11 +4,11 @@ import { NewCreatedModule } from './module.interfaces';
 
 const moduleResourceSchema = Joi.object({
   file: Joi.string().required(),
-  key: Joi.string().required(),
+  key: Joi.string().allow('').optional(),
 });
 
 const createModuleBody: Record<keyof NewCreatedModule, any> = {
-  syllabusId: Joi.string().custom(objectId).required(),
+  syllabusId: Joi.string().custom(objectId).allow('').optional(),
   type: Joi.string().valid('theory', 'technical', 'learning').required(),
   title: Joi.string().required(),
   description: Joi.string().required(),
@@ -74,4 +74,4 @@ export const getModulesByType = {
   params: Joi.object().keys({
     type: Joi.string().valid('theory', 'technical', 'learning').required(),
   }),
-}; 
+};

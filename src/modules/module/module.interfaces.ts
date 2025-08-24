@@ -7,7 +7,7 @@ export interface IModuleResource {
 }
 
 export interface IModule {
-  syllabusId: mongoose.Types.ObjectId;
+  syllabusId?: mongoose.Types.ObjectId;
   type: 'theory' | 'technical' | 'learning';
   title: string;
   description: string;
@@ -23,4 +23,4 @@ export interface IModuleModel extends Model<IModuleDoc> {
 
 export type UpdateModuleBody = Partial<IModule>;
 
-export type NewCreatedModule = Omit<IModule, '_id'>; 
+export type NewCreatedModule = Omit<IModule, '_id'>;

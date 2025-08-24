@@ -8,7 +8,7 @@ const router: Router = express.Router();
 
 router
   .route('/')
-  .post( validate(moduleValidation.createModule), moduleController.createModule)
+  .post(auth('manageModules'), validate(moduleValidation.createModule), moduleController.createModule)
   .get(auth('getModules'), validate(moduleValidation.getModules), moduleController.getModules);
 
 router
@@ -54,7 +54,6 @@ export default router;
  *           schema:
  *             type: object
  *             required:
- *               - syllabusId
  *               - type
  *               - title
  *               - description
@@ -63,7 +62,7 @@ export default router;
  *               syllabusId:
  *                 type: string
  *                 format: objectId
- *                 description: Syllabus ID that this module belongs to
+ *                 description: Syllabus ID that this module belongs to (optional)
  *               type:
  *                 type: string
  *                 enum: [theory, technical, learning]
@@ -90,7 +89,6 @@ export default router;
  *                       type: string
  *                       description: Resource key or identifier
  *             example:
- *               syllabusId: "507f1f77bcf86cd799439011"
  *               type: "theory"
  *               title: "Introduction to Programming Concepts"
  *               description: "Learn the fundamental concepts of programming"
@@ -247,7 +245,7 @@ export default router;
  *               syllabusId:
  *                 type: string
  *                 format: objectId
- *                 description: Syllabus ID that this module belongs to
+ *                 description: Syllabus ID that this module belongs to (optional)
  *               type:
  *                 type: string
  *                 enum: [theory, technical, learning]
@@ -382,4 +380,4 @@ export default router;
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
- */ 
+ */

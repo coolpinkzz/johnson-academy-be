@@ -89,6 +89,18 @@ export const createClasses = async (classesBody: NewCreatedClasses): Promise<ICl
  * @returns {Promise<QueryResult>}
  */
 export const queryClasses = async (filter: Record<string, any>, options: IOptions): Promise<QueryResult> => {
+  // Ensure course is populated if not already specified
+  if (!options.populate) {
+    options.populate = 'courseId';
+  } else if (!options.populate.includes('courseId')) {
+    options.populate += ',courseId';
+  }
+
+  // Set default sort to latest to oldest if no sort is specified
+  if (!options.sortBy) {
+    options.sortBy = 'createdAt:desc';
+  }
+
   const classes = await Classes.paginate(filter, options);
   return classes;
 };

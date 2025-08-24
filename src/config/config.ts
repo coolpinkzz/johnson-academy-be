@@ -21,6 +21,9 @@ const envVarsSchema = Joi.object()
     SMTP_PASSWORD: Joi.string().description('password for email server'),
     EMAIL_FROM: Joi.string().description('the from field in the emails sent by the app'),
     CLIENT_URL: Joi.string().required().description('Client url'),
+    IMAGEKIT_PUBLIC_KEY: Joi.string().description('ImageKit public key'),
+    IMAGEKIT_PRIVATE_KEY: Joi.string().description('ImageKit private key'),
+    IMAGEKIT_URL_ENDPOINT: Joi.string().description('ImageKit URL endpoint'),
   })
   .unknown();
 
@@ -63,6 +66,11 @@ const config = {
       },
     },
     from: envVars.EMAIL_FROM,
+  },
+  imagekit: {
+    publicKey: envVars.IMAGEKIT_PUBLIC_KEY,
+    privateKey: envVars.IMAGEKIT_PRIVATE_KEY,
+    urlEndpoint: envVars.IMAGEKIT_URL_ENDPOINT,
   },
   clientUrl: envVars.CLIENT_URL,
 };

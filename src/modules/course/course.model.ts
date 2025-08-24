@@ -19,11 +19,17 @@ const courseSchema = new mongoose.Schema<ICourseDoc, ICourseModel>(
       type: String,
       trim: true,
     },
-    syllabus: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Syllabus',
-    }],
-    
+    instrument: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    syllabus: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Syllabus',
+      },
+    ],
   },
   {
     timestamps: true,
@@ -36,4 +42,4 @@ courseSchema.plugin(paginate);
 
 const Course = mongoose.model<ICourseDoc, ICourseModel>('Course', courseSchema);
 
-export default Course; 
+export default Course;

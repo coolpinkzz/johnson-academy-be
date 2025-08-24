@@ -404,20 +404,16 @@ router
     syllabusController.getSyllabi
   );
 
-router
-  .route('/all')
-  .get(
-    authMiddleware('getSyllabi'), // All authenticated users can view all syllabi
-    syllabusController.getAllSyllabi
-  );
+router.route('/all').get(
+  authMiddleware('getSyllabi'), // All authenticated users can view all syllabi
+  syllabusController.getAllSyllabi
+);
 
-router
-  .route('/course/:courseId')
-  .get(
-    authMiddleware('getSyllabi'), // All authenticated users can view syllabus by course
-    validate(syllabusValidation.getSyllabusByCourse),
-    syllabusController.getSyllabusByCourse
-  );
+router.route('/course/:courseId').get(
+  authMiddleware('getSyllabi'), // All authenticated users can view syllabus by course
+  validate(syllabusValidation.getSyllabusByCourse),
+  syllabusController.getSyllabusByCourse
+);
 
 router
   .route('/:syllabusId')
@@ -437,20 +433,18 @@ router
     syllabusController.deleteSyllabus
   );
 
-router
-  .route('/:syllabusId/bulk-add-modules')
-  .post(
-    authMiddleware('manageSyllabi'), // Only admins can bulk add modules
-    validate(syllabusValidation.bulkAddModulesToSyllabus),
-    syllabusController.bulkAddModulesToSyllabus
-  );
+// router
+//   .route('/:syllabusId/bulk-add-modules')
+//   .post(
+//     authMiddleware('manageSyllabi'), // Only admins can bulk add modules
+//     validate(syllabusValidation.bulkAddModulesToSyllabus),
+//     syllabusController.bulkAddModulesToSyllabus
+//   );
 
-router
-  .route('/bulk-add-modules')
-  .post(
-    authMiddleware('manageSyllabi'), // Only admins can bulk add modules
-    validate(syllabusValidation.bulkAddModulesToMultipleSyllabi),
-    syllabusController.bulkAddModulesToMultipleSyllabi
-  );
+// router.route('/bulk-add-modules').post(
+//   authMiddleware('manageSyllabi'), // Only admins can bulk add modules
+//   validate(syllabusValidation.bulkAddModulesToMultipleSyllabi),
+//   syllabusController.bulkAddModulesToMultipleSyllabi
+// );
 
-export default router; 
+export default router;

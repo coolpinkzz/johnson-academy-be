@@ -266,7 +266,15 @@ studentProgressSchema.static(
     const syllabusProgress = [];
 
     for (const syllabus of syllabi) {
-      const allModuleIds = [...syllabus.theory, ...syllabus.technical, ...syllabus.learning];
+      // Get modules for this syllabus and extract their IDs
+      const Module = mongoose.model('Module');
+      const modules = await Module.find({ syllabusId: syllabus._id });
+
+      const theoryIds = modules.filter((m) => m.type === 'theory').map((m) => m._id);
+      const technicalIds = modules.filter((m) => m.type === 'technical').map((m) => m._id);
+      const learningIds = modules.filter((m) => m.type === 'learning').map((m) => m._id);
+
+      const allModuleIds = [...theoryIds, ...technicalIds, ...learningIds];
       totalModules += allModuleIds.length;
 
       // Create module progress entries for this syllabus

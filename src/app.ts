@@ -37,6 +37,17 @@ app.use(express.urlencoded({ extended: true }));
 app.use(xss());
 app.use(ExpressMongoSanitize());
 
+// Error handling for multer
+app.use((error: any, _req: any, res: any, next: any) => {
+  if (error instanceof Error && error.message === 'Only image files and PDFs are allowed') {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Only image files and PDFs are allowed',
+    });
+  }
+  next(error);
+});
+
 // gzip compression
 app.use(compression());
 

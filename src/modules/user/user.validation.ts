@@ -2,12 +2,14 @@ import Joi from 'joi';
 import { password, objectId } from '../validate/custom.validation';
 import { NewCreatedUser } from './user.interfaces';
 
-const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 'progress'>, any> = { 
+const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 'progress'>, any> = {
   email: Joi.string().required().email(),
   password: Joi.string().required().custom(password),
   name: Joi.string().required(),
   role: Joi.string().required().valid('admin', 'teacher', 'student'),
-  roleNumber: Joi.string().pattern(/^JA\/[A-Z]{3}\/\d{6}$/).optional(),
+  roleNumber: Joi.string()
+    .pattern(/^JA\/[A-Z]{3}\/\d{6}$/)
+    .optional(),
   studentId: Joi.string().when('role', {
     is: 'student',
     then: Joi.required(),
@@ -59,7 +61,7 @@ export const createUser = {
 
 export const getUsers = {
   query: Joi.object().keys({
-    name: Joi.string(),
+    name: Joi.string().allow(''),
     role: Joi.string().valid('admin', 'teacher', 'student'),
     department: Joi.string(),
     gradeLevel: Joi.string(),

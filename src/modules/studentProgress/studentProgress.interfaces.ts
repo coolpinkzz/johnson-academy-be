@@ -34,11 +34,18 @@ export interface IStudentProgressDoc extends IStudentProgress, Document {
 }
 
 export interface IStudentProgressModel extends Model<IStudentProgressDoc> {
-  findByStudentAndClass(studentId: mongoose.Types.ObjectId, classId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc | null>;
+  findByStudentAndClass(
+    studentId: mongoose.Types.ObjectId,
+    classId: mongoose.Types.ObjectId
+  ): Promise<IStudentProgressDoc | null>;
   findByStudent(studentId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc[]>;
   findByClass(classId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc[]>;
   findByCourse(courseId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc[]>;
-  createProgressForStudent(studentId: mongoose.Types.ObjectId, classId: mongoose.Types.ObjectId, courseId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc>;
+  createProgressForStudent(
+    studentId: mongoose.Types.ObjectId,
+    classId: mongoose.Types.ObjectId,
+    courseId: mongoose.Types.ObjectId
+  ): Promise<IStudentProgressDoc>;
   paginate(filter: Record<string, any>, options: Record<string, any>): Promise<QueryResult>;
 }
 
@@ -64,4 +71,4 @@ export interface IEndModuleBody {
   syllabusId: mongoose.Types.ObjectId;
   remark: string;
   score: number;
-} 
+}

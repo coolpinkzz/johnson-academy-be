@@ -10,6 +10,7 @@ export interface IMRT {
   learningSpeed: number;
   songLearning: number;
   assignment: number;
+  theoryAndTechnicals: number;
   totalScore?: number;
   averageScore?: number;
   remarks?: string;
@@ -34,6 +35,7 @@ export interface IMRTUpdateBody {
   learningSpeed?: number;
   songLearning?: number;
   assignment?: number;
+  theoryAndTechnicals?: number;
   remarks?: string;
 }
 
@@ -46,5 +48,6 @@ export interface IMRTCreateBody {
   learningSpeed: number;
   songLearning: number;
   assignment: number;
+  theoryAndTechnicals: number;
   remarks?: string;
 }

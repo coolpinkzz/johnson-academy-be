@@ -14,12 +14,12 @@ This module handles class management in the Johnson Academy backend. Classes rep
 
 ```typescript
 interface IClasses {
-  name: string;                           // Class name
-  teacherId: mongoose.Types.ObjectId;     // Reference to User (teacher)
-  courseId: mongoose.Types.ObjectId;      // Reference to Course
-  students: mongoose.Types.ObjectId[];    // Array of User IDs (students)
-  createdAt: Date;                        // Auto-generated timestamp
-  updatedAt: Date;                        // Auto-generated timestamp
+  name: string; // Class name
+  teacherId: mongoose.Types.ObjectId; // Reference to User (teacher)
+  courseId: mongoose.Types.ObjectId; // Reference to Course
+  students: mongoose.Types.ObjectId[]; // Array of User IDs (students)
+  createdAt: Date; // Auto-generated timestamp
+  updatedAt: Date; // Auto-generated timestamp
 }
 ```
 
@@ -28,9 +28,11 @@ interface IClasses {
 ### Base URL: `/v1/classes`
 
 #### Create Class
+
 - **POST** `/`
 - **Permissions**: Admin only (`manageClasses`)
 - **Body**:
+
 ```json
 {
   "name": "Advanced Mathematics 101",
@@ -41,6 +43,7 @@ interface IClasses {
 ```
 
 #### Get All Classes (Paginated)
+
 - **GET** `/`
 - **Permissions**: All authenticated users (`getClasses`)
 - **Query Parameters**:
@@ -52,31 +55,47 @@ interface IClasses {
   - `page`: Page number
 
 #### Get All Classes (Non-paginated)
+
 - **GET** `/all`
 - **Permissions**: All authenticated users (`getClasses`)
 
 #### Get Class by ID
+
 - **GET** `/:classesId`
 - **Permissions**: All authenticated users (`getClasses`)
 
 #### Get Classes by Teacher
+
 - **GET** `/teacher/:teacherId`
 - **Permissions**: All authenticated users (`getClasses`)
 
 #### Get Classes by Course
+
 - **GET** `/course/:courseId`
 - **Permissions**: All authenticated users (`getClasses`)
 
 #### Get Classes by Student
+
 - **GET** `/student/:studentId`
 - **Permissions**: All authenticated users (`getClasses`)
+- **Returns**: Array of classes where the student is enrolled
+
+#### Get Students by Class
+
+- **GET** `/:classesId/students`
+- **Permissions**: All authenticated users (`getClasses`)
+- **Returns**: Array of students enrolled in the specified class
+
+#### Bulk Add Students to Class
 
 #### Update Class
+
 - **PATCH** `/:classesId`
 - **Permissions**: Admin only (`manageClasses`)
 - **Body**: Any combination of class fields
 
 #### Delete Class
+
 - **DELETE** `/:classesId`
 - **Permissions**: Admin only (`manageClasses`)
 
@@ -92,10 +111,10 @@ All endpoints include comprehensive validation:
 
 - **ObjectId validation**: Ensures all references (teacherId, courseId, students) are valid MongoDB ObjectIds
 - **Required field validation**: name, teacherId, and courseId are required
-- **Role validation**: 
+- **Role validation**:
   - teacherId must reference a user with role 'teacher'
   - students array must only contain users with role 'student'
-- **Existence validation**: 
+- **Existence validation**:
   - Ensures teacherId exists in the database
   - Ensures courseId exists in the database
   - Ensures all student IDs exist in the database
@@ -103,6 +122,7 @@ All endpoints include comprehensive validation:
 ## Response Examples
 
 ### Successful Class Creation
+
 ```json
 {
   "_id": "64f1a2b3c4d5e6f7g8h9i0j5",
@@ -150,6 +170,7 @@ The API returns appropriate HTTP status codes:
 ## Usage Examples
 
 ### Create a New Class
+
 ```bash
 curl -X POST /v1/classes \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
@@ -163,12 +184,14 @@ curl -X POST /v1/classes \
 ```
 
 ### Get Classes by Teacher
+
 ```bash
 curl -X GET /v1/classes/teacher/64f1a2b3c4d5e6f7g8h9i0j1 \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ### Update Class
+
 ```bash
 curl -X PATCH /v1/classes/64f1a2b3c4d5e6f7g8h9i0j5 \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
@@ -180,7 +203,8 @@ curl -X PATCH /v1/classes/64f1a2b3c4d5e6f7g8h9i0j5 \
 ```
 
 ### Get Classes by Student
+
 ```bash
 curl -X GET /v1/classes/student/64f1a2b3c4d5e6f7g8h9i0j3 \
   -H "Authorization: Bearer YOUR_TOKEN"
-``` 
+```

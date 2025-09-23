@@ -129,7 +129,7 @@ export const getCourseByName = async (name: string): Promise<any> => {
   if (course) {
     await Course.populate(course, {
       path: 'syllabus',
-      populate: [{ path: 'theory' }, { path: 'technical' }, { path: 'learning' }],
+      populate: [{ path: 'theory' }, { path: 'technical' }, { path: 'learning' }, { path: 'others' }],
     });
 
     const courseObj = course.toObject();

@@ -12,7 +12,7 @@ export const createModule = catchAsync(async (req: Request, res: Response) => {
   if (req.user && req.user.role !== 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can create modules');
   }
-  
+
   const module = await moduleService.createModule(req.body);
   res.status(httpStatus.CREATED).send(module);
 });
@@ -22,7 +22,7 @@ export const createModulesBulk = catchAsync(async (req: Request, res: Response) 
   if (req.user && req.user.role !== 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can create modules');
   }
-  
+
   const modules = await moduleService.createModulesBulk(req.body);
   res.status(httpStatus.CREATED).send(modules);
 });
@@ -49,7 +49,7 @@ export const updateModule = catchAsync(async (req: Request, res: Response) => {
   if (req.user && req.user.role !== 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can update modules');
   }
-  
+
   if (typeof req.params['moduleId'] === 'string') {
     const module = await moduleService.updateModuleById(new mongoose.Types.ObjectId(req.params['moduleId']), req.body);
     res.send(module);
@@ -61,7 +61,7 @@ export const deleteModule = catchAsync(async (req: Request, res: Response) => {
   if (req.user && req.user.role !== 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can delete modules');
   }
-  
+
   if (typeof req.params['moduleId'] === 'string') {
     await moduleService.deleteModuleById(new mongoose.Types.ObjectId(req.params['moduleId']));
     res.status(httpStatus.NO_CONTENT).send();
@@ -77,10 +77,10 @@ export const getModulesBySyllabus = catchAsync(async (req: Request, res: Respons
 
 export const getModulesByType = catchAsync(async (req: Request, res: Response) => {
   const { type } = req.params;
-  if (type && ['theory', 'technical', 'learning'].includes(type)) {
-    const modules = await moduleService.getModulesByType(type as 'theory' | 'technical' | 'learning');
+  if (type && ['theory', 'technical', 'learning', 'others'].includes(type)) {
+    const modules = await moduleService.getModulesByType(type as 'theory' | 'technical' | 'learning' | 'others');
     res.send(modules);
   } else {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid module type');
   }
-}); 
+});

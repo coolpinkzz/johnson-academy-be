@@ -28,7 +28,7 @@ const moduleSchema = new mongoose.Schema<IModuleDoc, IModuleModel>(
     },
     type: {
       type: String,
-      enum: ['theory', 'technical', 'learning'],
+      enum: ['theory', 'technical', 'learning', 'others'],
       required: true,
     },
     title: {

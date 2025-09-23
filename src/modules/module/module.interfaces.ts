@@ -8,7 +8,7 @@ export interface IModuleResource {
 
 export interface IModule {
   syllabusId?: mongoose.Types.ObjectId;
-  type: 'theory' | 'technical' | 'learning';
+  type: 'theory' | 'technical' | 'learning' | 'others';
   title: string;
   description: string;
   session: number;

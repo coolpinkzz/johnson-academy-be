@@ -78,6 +78,16 @@ const mrtSchema = new mongoose.Schema<IMRTDoc, IMRTModel>(
         message: 'Assignment must be an integer',
       },
     },
+    theoryAndTechnicals: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 5,
+      validate: {
+        validator: Number.isInteger,
+        message: 'Theory and Technical must be an integer',
+      },
+    },
     totalScore: {
       type: Number,
       min: 0,
@@ -111,10 +121,17 @@ mrtSchema.pre('save', function (this: any, next) {
     this.isModified('regularity') ||
     this.isModified('learningSpeed') ||
     this.isModified('songLearning') ||
-    this.isModified('assignment')
+    this.isModified('assignment') ||
+    this.isModified('theoryAndTechnicals')
   ) {
-    this.totalScore = this.sptAndFileSubmission + this.regularity + this.learningSpeed + this.songLearning + this.assignment;
-    this.averageScore = Math.round(this.totalScore / 5);
+    this.totalScore =
+      this.sptAndFileSubmission +
+      this.regularity +
+      this.learningSpeed +
+      this.songLearning +
+      this.assignment +
+      this.theoryAndTechnicals;
+    this.averageScore = Math.round(this.totalScore / 6);
   }
   next();
 });

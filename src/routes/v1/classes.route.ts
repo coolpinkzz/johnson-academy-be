@@ -19,36 +19,28 @@ router
     classesController.getClasses
   );
 
-router
-  .route('/all')
-  .get(
-    authMiddleware('getClasses'), // All authenticated users can view all classes
-    classesController.getAllClasses
-  );
+router.route('/all').get(
+  authMiddleware('getClasses'), // All authenticated users can view all classes
+  classesController.getAllClasses
+);
 
-router
-  .route('/teacher/:teacherId')
-  .get(
-    authMiddleware('getClasses'), // All authenticated users can view classes by teacher
-    validate(classesValidation.getClassesByTeacher),
-    classesController.getClassesByTeacher
-  );
+router.route('/teacher/:teacherId').get(
+  authMiddleware('getClasses'), // All authenticated users can view classes by teacher
+  validate(classesValidation.getClassesByTeacher),
+  classesController.getClassesByTeacher
+);
 
-router
-  .route('/course/:courseId')
-  .get(
-    authMiddleware('getClasses'), // All authenticated users can view classes by course
-    validate(classesValidation.getClassesByCourse),
-    classesController.getClassesByCourse
-  );
+router.route('/course/:courseId').get(
+  authMiddleware('getClasses'), // All authenticated users can view classes by course
+  validate(classesValidation.getClassesByCourse),
+  classesController.getClassesByCourse
+);
 
-router
-  .route('/student/:studentId')
-  .get(
-    authMiddleware('getClasses'), // All authenticated users can view classes by student
-    validate(classesValidation.getClassesByStudent),
-    classesController.getClassesByStudent
-  );
+router.route('/student/:studentId').get(
+  authMiddleware('getClasses'), // All authenticated users can view classes by student
+  validate(classesValidation.getClassesByStudent),
+  classesController.getClassesByStudent
+);
 
 router
   .route('/:classesId')
@@ -68,15 +60,19 @@ router
     classesController.deleteClasses
   );
 
-router
-  .route('/:classesId/students/bulk-add')
-  .post(
-    authMiddleware('manageClasses'), // Only admins can bulk add students to classes
-    validate(classesValidation.bulkAddStudentsToClass),
-    classesController.bulkAddStudentsToClass
-  );
+router.route('/:classesId/students/bulk-add').post(
+  authMiddleware('manageClasses'), // Only admins can bulk add students to classes
+  validate(classesValidation.bulkAddStudentsToClass),
+  classesController.bulkAddStudentsToClass
+);
 
-export default router; 
+router.route('/:classesId/students').get(
+  authMiddleware('getClasses'), // All authenticated users can view students in a class
+  validate(classesValidation.getClass),
+  classesController.getStudentsByClass
+);
+
+export default router;
 
 /**
  * @swagger
@@ -504,3 +500,62 @@ export default router;
  *         $ref: '#/components/responses/NotFound'
  */
 
+/**
+ * @swagger
+ * /classes/{classesId}/students:
+ *   get:
+ *     summary: Get students by class
+ *     description: Retrieve all students enrolled in a specific class.
+ *     tags: [Classes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classesId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectId
+ *         description: Class ID
+ *     responses:
+ *       "200":
+ *         description: Students retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                     format: objectId
+ *                     description: Student ID
+ *                   name:
+ *                     type: string
+ *                     description: Student name
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                     description: Student email
+ *                   role:
+ *                     type: string
+ *                     enum: [student]
+ *                     description: User role (always student)
+ *                   gradeLevel:
+ *                     type: string
+ *                     description: Student grade level
+ *                   profilePicture:
+ *                     type: string
+ *                     description: URL to student profile picture
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                     description: When the student account was created
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ */

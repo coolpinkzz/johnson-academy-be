@@ -70,9 +70,7 @@ export const getTeachersByDepartment = catchAsync(async (req: Request, res: Resp
 export const getUserByStudentId = catchAsync(async (req: Request, res: Response) => {
   const { studentId } = req.params;
   if (typeof studentId === 'string') {
-    console.log(studentId, 'studentId');
     const user = await userService.getUserByStudentId(studentId);
-    console.log(user, 'user');
     if (!user) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Student not found');
     }

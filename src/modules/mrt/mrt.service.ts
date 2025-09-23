@@ -54,9 +54,7 @@ export const getMRTByStudentClassMonth = async (
 ): Promise<IMRTDoc | null> => {
   return MRT.findOne({ studentId, classId, month })
     .populate('studentId', 'name email studentId')
-    .populate('classId', 'name')
-    .populate('createdBy', 'name email')
-    .populate('updatedBy', 'name email');
+    .populate('classId', 'name');
 };
 
 /**

@@ -144,6 +144,10 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
       type: Boolean,
       default: true,
     },
+    isCompleteProfile: {
+      type: Boolean,
+      default: false,
+    },
     profilePicture: {
       type: String,
       default: null,

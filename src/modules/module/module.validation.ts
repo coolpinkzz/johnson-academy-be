@@ -9,7 +9,7 @@ const moduleResourceSchema = Joi.object({
 
 const createModuleBody: Record<keyof NewCreatedModule, any> = {
   syllabusId: Joi.string().custom(objectId).allow('').optional(),
-  type: Joi.string().valid('theory', 'technical', 'learning').required(),
+  type: Joi.string().valid('theory', 'technical', 'learning', 'others').required(),
   title: Joi.string().required(),
   description: Joi.string().required(),
   session: Joi.number().integer().min(1).required(),
@@ -27,7 +27,7 @@ export const createModulesBulk = {
 export const getModules = {
   query: Joi.object().keys({
     title: Joi.string(),
-    type: Joi.string().valid('theory', 'technical', 'learning'),
+    type: Joi.string().valid('theory', 'technical', 'learning', 'others'),
     syllabusId: Joi.string().custom(objectId),
     sortBy: Joi.string(),
     projectBy: Joi.string(),
@@ -49,7 +49,7 @@ export const updateModule = {
   body: Joi.object()
     .keys({
       syllabusId: Joi.string().custom(objectId),
-      type: Joi.string().valid('theory', 'technical', 'learning'),
+      type: Joi.string().valid('theory', 'technical', 'learning', 'others'),
       title: Joi.string(),
       description: Joi.string(),
       session: Joi.number().integer().min(1),
@@ -72,6 +72,6 @@ export const getModulesBySyllabus = {
 
 export const getModulesByType = {
   params: Joi.object().keys({
-    type: Joi.string().valid('theory', 'technical', 'learning').required(),
+    type: Joi.string().valid('theory', 'technical', 'learning', 'others').required(),
   }),
 };

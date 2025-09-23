@@ -119,12 +119,14 @@ export const getAllSyllabi = async (): Promise<any[]> => {
       const technical = modules.filter((module) => module.type === 'technical');
       const theory = modules.filter((module) => module.type === 'theory');
       const learning = modules.filter((module) => module.type === 'learning');
+      const others = modules.filter((module) => module.type === 'others');
 
       return {
         ...syllabus.toObject(),
         technical,
         theory,
         learning,
+        others,
       };
     })
   );

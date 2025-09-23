@@ -77,8 +77,6 @@ export const markAttendancePresent = catchAsync(async (req: Request, res: Respon
   const { attendanceId } = req.params;
   const { studentId, classId, date } = req.body;
 
-  console.log(attendanceId, studentId, classId, date);
-
   if (typeof attendanceId === 'string') {
     const attendance = await studentAttendanceService.markAttendancePresent(
       new mongoose.Types.ObjectId(attendanceId),

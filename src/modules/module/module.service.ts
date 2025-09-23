@@ -139,6 +139,6 @@ export const getModulesBySyllabusId = async (syllabusId: mongoose.Types.ObjectId
  * @param {string} type
  * @returns {Promise<IModuleDoc[]>}
  */
-export const getModulesByType = async (type: 'theory' | 'technical' | 'learning'): Promise<IModuleDoc[]> => {
+export const getModulesByType = async (type: 'theory' | 'technical' | 'learning' | 'others'): Promise<IModuleDoc[]> => {
   return Module.find({ type }).populate('syllabusId');
 };

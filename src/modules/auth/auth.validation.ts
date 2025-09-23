@@ -9,7 +9,7 @@ const registerBody = {
   role: Joi.string()
     .required()
     .valid(...roles),
-  profilePicture: Joi.string().uri().allow(null).optional(),
+  profilePicture: Joi.string().uri().allow('').optional(),
   phoneNumber: Joi.string()
     .pattern(/^\+?[\d\s-()]+$/)
     .optional(),

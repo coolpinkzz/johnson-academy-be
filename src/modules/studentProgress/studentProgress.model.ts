@@ -273,8 +273,9 @@ studentProgressSchema.static(
       const theoryIds = modules.filter((m) => m.type === 'theory').map((m) => m._id);
       const technicalIds = modules.filter((m) => m.type === 'technical').map((m) => m._id);
       const learningIds = modules.filter((m) => m.type === 'learning').map((m) => m._id);
+      const othersIds = modules.filter((m) => m.type === 'others').map((m) => m._id);
 
-      const allModuleIds = [...theoryIds, ...technicalIds, ...learningIds];
+      const allModuleIds = [...theoryIds, ...technicalIds, ...learningIds, ...othersIds];
       totalModules += allModuleIds.length;
 
       // Create module progress entries for this syllabus

@@ -18,6 +18,7 @@ export interface IUser {
   enrollmentDate?: Date;
   graduationDate?: Date;
   isActive: boolean;
+  isCompleteProfile: boolean;
   profilePicture?: string;
   phoneNumber?: string;
   address?: {

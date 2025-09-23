@@ -21,7 +21,9 @@ export const getStudentProgress = catchAsync(async (req: Request, res: Response)
 
 export const getStudentProgressById = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['studentProgressId'] === 'string') {
-    const studentProgress = await studentProgressService.getStudentProgressById(new mongoose.Types.ObjectId(req.params['studentProgressId']));
+    const studentProgress = await studentProgressService.getStudentProgressById(
+      new mongoose.Types.ObjectId(req.params['studentProgressId'])
+    );
     if (!studentProgress) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Student progress not found');
     }
@@ -78,21 +80,27 @@ export const deleteStudentProgress = catchAsync(async (req: Request, res: Respon
 
 export const getStudentProgressByStudent = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['studentId'] === 'string') {
-    const studentProgress = await studentProgressService.getStudentProgressByStudent(new mongoose.Types.ObjectId(req.params['studentId']));
+    const studentProgress = await studentProgressService.getStudentProgressByStudent(
+      new mongoose.Types.ObjectId(req.params['studentId'])
+    );
     res.send(studentProgress);
   }
 });
 
 export const getStudentProgressByClass = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['classId'] === 'string') {
-    const studentProgress = await studentProgressService.getStudentProgressByClass(new mongoose.Types.ObjectId(req.params['classId']));
+    const studentProgress = await studentProgressService.getStudentProgressByClass(
+      new mongoose.Types.ObjectId(req.params['classId'])
+    );
     res.send(studentProgress);
   }
 });
 
 export const getStudentProgressByCourse = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['courseId'] === 'string') {
-    const studentProgress = await studentProgressService.getStudentProgressByCourse(new mongoose.Types.ObjectId(req.params['courseId']));
+    const studentProgress = await studentProgressService.getStudentProgressByCourse(
+      new mongoose.Types.ObjectId(req.params['courseId'])
+    );
     res.send(studentProgress);
   }
 });
@@ -112,14 +120,18 @@ export const getStudentProgressByStudentAndClass = catchAsync(async (req: Reques
 
 export const getClassProgressStatistics = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['classId'] === 'string') {
-    const statistics = await studentProgressService.getClassProgressStatistics(new mongoose.Types.ObjectId(req.params['classId']));
+    const statistics = await studentProgressService.getClassProgressStatistics(
+      new mongoose.Types.ObjectId(req.params['classId'])
+    );
     res.send(statistics);
   }
 });
 
 export const getCourseProgressStatistics = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['courseId'] === 'string') {
-    const statistics = await studentProgressService.getCourseProgressStatistics(new mongoose.Types.ObjectId(req.params['courseId']));
+    const statistics = await studentProgressService.getCourseProgressStatistics(
+      new mongoose.Types.ObjectId(req.params['courseId'])
+    );
     res.send(statistics);
   }
-}); 
+});

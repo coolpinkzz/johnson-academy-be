@@ -10,9 +10,7 @@ router
   .post(auth('manageUsers'), validate(userValidation.createUser), userController.createUser)
   .get(auth('getUsers'), validate(userValidation.getUsers), userController.getUsers);
 
-router
-  .route('/role')
-  .get(auth('getUsers'), validate(userValidation.getUsersByRole), userController.getUsersByRole);
+router.route('/role').get(auth('getUsers'), validate(userValidation.getUsersByRole), userController.getUsersByRole);
 
 router
   .route('/students/grade')
@@ -22,18 +20,14 @@ router
   .route('/teachers/department')
   .get(auth('getStudents'), validate(userValidation.getTeachersByDepartment), userController.getTeachersByDepartment);
 
-router
-  .route('/student/:studentId')
-  .get(auth('getStudents'), userController.getUserByStudentId);
+router.route('/student/:studentId').get(auth('getStudents'), userController.getUserByStudentId);
 
-router
-  .route('/teacher/:teacherId')
-  .get(auth('getStudents'), userController.getUserByTeacherId);
+router.route('/teacher/:teacherId').get(auth('getStudents'), userController.getUserByTeacherId);
 
 router
   .route('/:userId')
   .get(auth('getUsers'), validate(userValidation.getUser), userController.getUser)
-  .patch(auth('manageUsers'), validate(userValidation.updateUser), userController.updateUser)
+  .patch(auth('updateProfile'), validate(userValidation.updateUser), userController.updateUser)
   .delete(auth('manageUsers'), validate(userValidation.deleteUser), userController.deleteUser);
 
 export default router;

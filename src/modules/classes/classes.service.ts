@@ -379,3 +379,21 @@ export const bulkAddStudentsToClass = async (
 
   return updatedClasses;
 };
+
+/**
+ * Get students by class id
+ * @param {mongoose.Types.ObjectId} classesId
+ * @returns {Promise<any[]>}
+ */
+export const getStudentsByClassId = async (classesId: mongoose.Types.ObjectId): Promise<any[]> => {
+  const classes = await Classes.findById(classesId).populate({
+    path: 'students',
+    select: 'name email role gradeLevel profilePicture createdAt',
+  });
+
+  if (!classes) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Class not found');
+  }
+
+  return classes.students || [];
+};

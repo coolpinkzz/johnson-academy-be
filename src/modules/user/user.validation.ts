@@ -2,7 +2,7 @@ import Joi from 'joi';
 import { password, objectId } from '../validate/custom.validation';
 import { NewCreatedUser } from './user.interfaces';
 
-const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 'progress'>, any> = {
+const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 'progress' | 'isCompleteProfile'>, any> = {
   email: Joi.string().required().email(),
   password: Joi.string().required().custom(password),
   name: Joi.string().required(),
@@ -38,7 +38,7 @@ const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 
   }),
   graduationDate: Joi.date(),
   isActive: Joi.boolean(),
-  profilePicture: Joi.string().uri(),
+  profilePicture: Joi.string().uri().allow('').optional(),
   phoneNumber: Joi.string().pattern(/^\+?[\d\s-()]+$/),
   address: Joi.object({
     street: Joi.string(),
@@ -83,36 +83,15 @@ export const updateUser = {
   params: Joi.object().keys({
     userId: Joi.required().custom(objectId),
   }),
+  // only one object
   body: Joi.object()
     .keys({
       email: Joi.string().email(),
       password: Joi.string().custom(password),
       name: Joi.string(),
-      role: Joi.string().valid('admin', 'teacher', 'student'),
-      roleNumber: Joi.string().pattern(/^JA\/[A-Z]{3}\/\d{6}$/),
-      studentId: Joi.string(),
-      teacherId: Joi.string(),
-      department: Joi.string(),
-      gradeLevel: Joi.string(),
-      subjects: Joi.array().items(Joi.string()),
-      enrollmentDate: Joi.date(),
-      graduationDate: Joi.date(),
-      isActive: Joi.boolean(),
-      profilePicture: Joi.string().uri(),
+      profilePicture: Joi.string().uri().allow('').optional(),
       phoneNumber: Joi.string().pattern(/^\+?[\d\s-()]+$/),
-      address: Joi.object({
-        street: Joi.string(),
-        city: Joi.string(),
-        state: Joi.string(),
-        zipCode: Joi.string(),
-        country: Joi.string(),
-      }),
-      emergencyContact: Joi.object({
-        name: Joi.string(),
-        relationship: Joi.string(),
-        phone: Joi.string().pattern(/^\+?[\d\s-()]+$/),
-        email: Joi.string().email(),
-      }),
+      isCompleteProfile: Joi.boolean().optional(),
     })
     .min(1),
 };

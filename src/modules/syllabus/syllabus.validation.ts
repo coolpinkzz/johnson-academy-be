@@ -47,6 +47,7 @@ export const updateSyllabus = {
       theory: Joi.array().items(Joi.string().custom(objectId)),
       technical: Joi.array().items(Joi.string().custom(objectId)),
       learning: Joi.array().items(Joi.string().custom(objectId)),
+      others: Joi.array().items(Joi.string().custom(objectId)),
     })
     .min(1),
 };
@@ -62,7 +63,7 @@ export const bulkAddModulesToSyllabus = {
     syllabusId: Joi.string().custom(objectId).required(),
   }),
   body: Joi.object().keys({
-    category: Joi.string().valid('theory', 'technical', 'learning').required(),
+    category: Joi.string().valid('theory', 'technical', 'learning', 'others').required(),
     moduleIds: Joi.array().items(Joi.string().custom(objectId)).min(1).required(),
   }),
 };
@@ -73,7 +74,7 @@ export const bulkAddModulesToMultipleSyllabi = {
       .items(
         Joi.object().keys({
           syllabusId: Joi.string().custom(objectId).required(),
-          category: Joi.string().valid('theory', 'technical', 'learning').required(),
+          category: Joi.string().valid('theory', 'technical', 'learning', 'others').required(),
           moduleIds: Joi.array().items(Joi.string().custom(objectId)).min(1).required(),
         })
       )

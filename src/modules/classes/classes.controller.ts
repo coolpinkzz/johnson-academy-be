@@ -12,7 +12,7 @@ export const createClasses = catchAsync(async (req: Request, res: Response) => {
   if (req.user && req.user.role !== 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can create classes');
   }
-  
+
   const classes = await classesService.createClasses(req.body);
   res.status(httpStatus.CREATED).send(classes);
 });
@@ -60,7 +60,7 @@ export const updateClasses = catchAsync(async (req: Request, res: Response) => {
   if (req.user && req.user.role !== 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can update classes');
   }
-  
+
   if (typeof req.params['classesId'] === 'string') {
     const classes = await classesService.updateClassesById(new mongoose.Types.ObjectId(req.params['classesId']), req.body);
     res.send(classes);
@@ -72,7 +72,7 @@ export const deleteClasses = catchAsync(async (req: Request, res: Response) => {
   if (req.user && req.user.role !== 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can delete classes');
   }
-  
+
   if (typeof req.params['classesId'] === 'string') {
     await classesService.deleteClassesById(new mongoose.Types.ObjectId(req.params['classesId']));
     res.status(httpStatus.NO_CONTENT).send();
@@ -84,24 +84,31 @@ export const getAllClasses = catchAsync(async (_req: Request, res: Response) => 
   res.send(classes);
 });
 
+export const getStudentsByClass = catchAsync(async (req: Request, res: Response) => {
+  if (typeof req.params['classesId'] === 'string') {
+    const students = await classesService.getStudentsByClassId(new mongoose.Types.ObjectId(req.params['classesId']));
+    res.send(students);
+  }
+});
+
 export const bulkAddStudentsToClass = catchAsync(async (req: Request, res: Response) => {
   // Check if user is admin - only admins can bulk add students to classes
   if (req.user && req.user.role !== 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can bulk add students to classes');
   }
-  
+
   if (typeof req.params['classesId'] === 'string') {
     const { studentIds } = req.body;
-    
+
     if (!Array.isArray(studentIds) || studentIds.length === 0) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'studentIds must be a non-empty array');
     }
-    
+
     const classes = await classesService.bulkAddStudentsToClass(
       new mongoose.Types.ObjectId(req.params['classesId']),
       studentIds.map((id: string) => new mongoose.Types.ObjectId(id))
     );
-    
+
     res.status(httpStatus.OK).send(classes);
   }
-}); 
+});

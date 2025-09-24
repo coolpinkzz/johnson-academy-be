@@ -145,7 +145,8 @@ export const updateUserById = async (
 };
 
 /**
- * Delete user by id
+ * Delete user by id with cascade deletion
+ * This function will delete all related records in other collections that reference this user
  * @param {mongoose.Types.ObjectId} userId
  * @returns {Promise<IUserDoc | null>}
  */
@@ -154,8 +155,66 @@ export const deleteUserById = async (userId: mongoose.Types.ObjectId): Promise<I
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
-  await user.deleteOne();
-  return user;
+
+  // Start a transaction to ensure all deletions succeed or fail together
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // Import required models
+    const StudentProgress = mongoose.model('StudentProgress');
+    const StudentAttendance = mongoose.model('StudentAttendance');
+    const MRT = mongoose.model('MRT');
+    const Token = mongoose.model('Token');
+    const Classes = mongoose.model('Classes');
+
+    // Delete all related records in parallel for better performance
+    const deletionResults = await Promise.all([
+      // Delete student progress records
+      StudentProgress.deleteMany({ studentId: userId }, { session }),
+
+      // Delete student attendance records
+      StudentAttendance.deleteMany({ studentId: userId }, { session }),
+
+      // Delete MRT records
+      MRT.deleteMany({ studentId: userId }, { session }),
+
+      // Delete token records
+      Token.deleteMany({ user: userId }, { session }),
+
+      // Remove user from classes where they are a student
+      Classes.updateMany({ students: userId }, { $pull: { students: userId } }, { session }),
+
+      // Remove user from classes where they are a teacher
+      Classes.updateMany({ teacherId: userId }, { $unset: { teacherId: 1 } }, { session }),
+    ]);
+
+    // Log deletion results for debugging
+    console.log(`Cascade deletion results for user ${userId}:`, {
+      studentProgress: deletionResults[0].deletedCount,
+      studentAttendance: deletionResults[1].deletedCount,
+      mrt: deletionResults[2].deletedCount,
+      tokens: deletionResults[3].deletedCount,
+      classesUpdated: deletionResults[4].modifiedCount,
+      teacherClassesUpdated: deletionResults[5].modifiedCount,
+    });
+
+    // Finally delete the user
+    await user.deleteOne({ session });
+
+    // Commit the transaction
+    await session.commitTransaction();
+
+    return user;
+  } catch (error) {
+    // If any error occurs, rollback the transaction
+    await session.abortTransaction();
+    console.error(`Error during cascade deletion for user ${userId}:`, error);
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to delete user and related records');
+  } finally {
+    // End the session
+    session.endSession();
+  }
 };
 
 /**

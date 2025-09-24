@@ -36,6 +36,11 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Delete user with cascade deletion
+ * This will delete the user and all related records in other collections
+ * including: StudentProgress, StudentAttendance, MRT, Token, and remove from Classes
+ */
 export const deleteUser = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['userId'] === 'string') {
     await userService.deleteUserById(new mongoose.Types.ObjectId(req.params['userId']));

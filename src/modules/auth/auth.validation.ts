@@ -9,6 +9,13 @@ const registerBody = {
   role: Joi.string()
     .required()
     .valid(...roles),
+  rollNumber: Joi.string()
+    .pattern(/^JA\/[A-Z]{3}\/\d{4}$/)
+    .when('role', {
+      is: 'student',
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    }),
   profilePicture: Joi.string().uri().allow('').optional(),
   phoneNumber: Joi.string()
     .pattern(/^\+?[\d\s-()]+$/)

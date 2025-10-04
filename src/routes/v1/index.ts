@@ -12,6 +12,7 @@ import studentAttendanceRoute from './studentAttendance.route';
 import mrtRoute from './mrt.route';
 import uploadRoute from './upload.route';
 import pdfRoute from './pdf.route';
+import assignmentRoute from './assignment.route';
 const router = express.Router();
 
 interface IRoute {
@@ -43,6 +44,10 @@ const defaultIRoute: IRoute[] = [
   {
     path: '/classes',
     route: classesRoute,
+  },
+  {
+    path: '/assignments',
+    route: assignmentRoute,
   },
   {
     path: '/student-progress',

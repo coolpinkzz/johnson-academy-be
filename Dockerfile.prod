@@ -20,8 +20,8 @@ RUN yarn compile
 FROM node:18 AS production
 
 # Create app user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+RUN groupadd -g 1001 nodejs
+RUN useradd -r -u 1001 -g nodejs nodejs
 
 # Set working directory
 WORKDIR /usr/src/app

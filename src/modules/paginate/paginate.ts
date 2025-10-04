@@ -47,7 +47,7 @@ const paginate = <T extends Document, U extends Model<U>>(schema: Schema<T>): vo
       });
       sort = sortingCriteria.join(' ');
     } else {
-      sort = 'createdAt';
+      sort = '-createdAt';
     }
 
     let project: string = '';

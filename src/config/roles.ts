@@ -1,5 +1,6 @@
 const allRoles = {
   admin: [
+    'getStudents',
     'getUsers',
     'manageUsers',
     'getCourses',
@@ -22,6 +23,7 @@ const allRoles = {
     'manageMRT',
     'uploadFiles',
     'updateProfile',
+    'getAssignments',
   ],
   teacher: [
     'getStudents',
@@ -40,6 +42,7 @@ const allRoles = {
     'manageMRT',
     'uploadFiles',
     'updateProfile',
+    'getAssignments',
   ],
   student: [
     'getStudents',
@@ -55,6 +58,7 @@ const allRoles = {
     'getMRT',
     'uploadFiles',
     'updateProfile',
+    'getAssignments',
   ],
 };
 

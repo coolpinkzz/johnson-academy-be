@@ -28,9 +28,9 @@ export const createUser = async (userBody: NewCreatedUser): Promise<IUserDoc> =>
     }
   }
 
-  if (userBody.role === 'student' && userBody.roleNumber) {
-    if (await User.isRoleNumberTaken(userBody.roleNumber)) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Role number already taken');
+  if (userBody.role === 'student' && userBody.rollNumber) {
+    if (await User.isRollNumberTaken(userBody.rollNumber)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Roll number already taken');
     }
   }
 
@@ -60,9 +60,9 @@ export const registerUser = async (userBody: NewRegisteredUser): Promise<IUserDo
     }
   }
 
-  if (userBody.role === 'student' && userBody.roleNumber) {
-    if (await User.isRoleNumberTaken(userBody.roleNumber)) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Role number already taken');
+  if (userBody.role === 'student' && userBody.rollNumber) {
+    if (await User.isRollNumberTaken(userBody.rollNumber)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Roll number already taken');
     }
   }
 
@@ -135,8 +135,8 @@ export const updateUserById = async (
     throw new ApiError(httpStatus.BAD_REQUEST, 'Teacher ID already taken');
   }
 
-  if (updateBody.roleNumber && (await User.isRoleNumberTaken(updateBody.roleNumber, userId))) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Role number already taken');
+  if (updateBody.rollNumber && (await User.isRollNumberTaken(updateBody.rollNumber, userId))) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Roll number already taken');
   }
 
   Object.assign(user, updateBody);
@@ -223,7 +223,7 @@ export const deleteUserById = async (userId: mongoose.Types.ObjectId): Promise<I
  * @returns {Promise<IUserDoc[]>}
  */
 export const getUsersByRole = async (role: string): Promise<IUserDoc[]> => {
-  return User.find({ role, isActive: true });
+  return User.find({ role, isActive: true }).sort({ createdAt: -1 });
 };
 
 /**
@@ -232,7 +232,7 @@ export const getUsersByRole = async (role: string): Promise<IUserDoc[]> => {
  * @returns {Promise<IUserDoc[]>}
  */
 export const getStudentsByGradeLevel = async (gradeLevel: string): Promise<IUserDoc[]> => {
-  return User.find({ role: 'student', gradeLevel, isActive: true });
+  return User.find({ role: 'student', gradeLevel, isActive: true }).sort({ createdAt: -1 });
 };
 
 /**
@@ -241,7 +241,7 @@ export const getStudentsByGradeLevel = async (gradeLevel: string): Promise<IUser
  * @returns {Promise<IUserDoc[]>}
  */
 export const getTeachersByDepartment = async (department: string): Promise<IUserDoc[]> => {
-  return User.find({ role: 'teacher', department, isActive: true });
+  return User.find({ role: 'teacher', department, isActive: true }).sort({ createdAt: -1 });
 };
 
 /**

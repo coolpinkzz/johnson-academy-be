@@ -42,22 +42,22 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
       enum: roles,
       required: true,
     },
-    roleNumber: {
+    rollNumber: {
       type: String,
       trim: true,
       validate: {
         validator: function (this: any, value: string) {
-          // Role number is only required for students
+          // Roll number is only required for students
           if (this.role === 'student' && !value) {
             return false;
           }
-          // If value is provided, it should match the format JA/GTR/123456
-          if (value && !value.match(/^JA\/[A-Z]{3}\/\d{6}$/)) {
+          // If value is provided, it should match the format JA/GTR/1234
+          if (value && !value.match(/^JA\/[A-Z]{3}\/\d{4}$/)) {
             return false;
           }
           return true;
         },
-        message: 'Role number must be in format JA/GTR/123456 and is required for students',
+        message: 'Roll number must be in format JA/GTR/1234 and is required for students',
       },
     },
     isEmailVerified: {
@@ -282,15 +282,15 @@ userSchema.static(
 );
 
 /**
- * Check if role number is taken
- * @param {string} roleNumber - The role number
+ * Check if roll number is taken
+ * @param {string} rollNumber - The roll number
  * @param {ObjectId} [excludeUserId] - The id of the user to be excluded
  * @returns {Promise<boolean>}
  */
 userSchema.static(
-  'isRoleNumberTaken',
-  async function (roleNumber: string, excludeUserId: mongoose.ObjectId): Promise<boolean> {
-    const user = await this.findOne({ roleNumber, _id: { $ne: excludeUserId } });
+  'isRollNumberTaken',
+  async function (rollNumber: string, excludeUserId: mongoose.ObjectId): Promise<boolean> {
+    const user = await this.findOne({ rollNumber, _id: { $ne: excludeUserId } });
     return !!user;
   }
 );

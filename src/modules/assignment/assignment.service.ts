@@ -268,14 +268,14 @@ export const submitAssignment = async (
  * Grade assignment by teacher
  * @param {mongoose.Types.ObjectId} assignmentId
  * @param {mongoose.Types.ObjectId} studentId
- * @param {string} grade
+ * @param {number} grade
  * @param {string} feedback
  * @returns {Promise<IAssignmentDoc | null>}
  */
 export const gradeAssignment = async (
   assignmentId: mongoose.Types.ObjectId,
   studentId: mongoose.Types.ObjectId,
-  grade: string,
+  grade: number,
   feedback?: string
 ): Promise<IAssignmentDoc | null> => {
   const assignment = await getAssignmentById(assignmentId);
@@ -290,7 +290,8 @@ export const gradeAssignment = async (
   }
 
   // Find the submission
-  const submission = assignment.submissions.find((sub) => sub.student.toString() === studentId.toString());
+
+  const submission = assignment.submissions.find((sub) => sub.student._id.toString() === studentId.toString());
 
   if (!submission) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'No submission found for this student');
@@ -327,7 +328,7 @@ export const updateSubmission = async (
   }
 
   // Find the submission
-  const submission = assignment.submissions.find((sub) => sub.student.toString() === studentId.toString());
+  const submission = assignment.submissions.find((sub) => sub.student._id.toString() === studentId.toString());
 
   if (!submission) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'No submission found for this student');

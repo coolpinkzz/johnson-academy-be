@@ -5,7 +5,7 @@ export interface IAssignmentSubmission {
   student: mongoose.Types.ObjectId;
   submittedAt?: Date;
   fileUrl?: string;
-  grade?: string;
+  grade?: number;
   feedback?: string;
 }
 
@@ -34,6 +34,6 @@ export type NewCreatedAssignment = Omit<IAssignment, '_id'>;
 
 export type UpdateSubmissionBody = {
   fileUrl?: string;
-  grade?: string;
+  grade?: number;
   feedback?: string;
 };

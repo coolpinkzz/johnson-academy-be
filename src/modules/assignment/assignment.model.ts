@@ -55,7 +55,9 @@ const assignmentSchema = new mongoose.Schema<IAssignmentDoc, IAssignmentModel>(
           type: String,
         },
         grade: {
-          type: String,
+          type: Number,
+          min: 1,
+          max: 5,
         },
         feedback: {
           type: String,

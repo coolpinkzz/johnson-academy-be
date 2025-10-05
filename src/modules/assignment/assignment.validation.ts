@@ -16,7 +16,7 @@ const createAssignmentBody: Record<keyof NewCreatedAssignment, any> = {
         student: Joi.string().custom(objectId).required(),
         submittedAt: Joi.date().optional(),
         fileUrl: Joi.string().optional(),
-        grade: Joi.string().optional(),
+        grade: Joi.number().integer().min(1).max(5).optional(),
         feedback: Joi.string().optional(),
       })
     )
@@ -86,7 +86,7 @@ export const updateAssignment = {
           student: Joi.string().custom(objectId).required(),
           submittedAt: Joi.date().optional(),
           fileUrl: Joi.string().optional(),
-          grade: Joi.string().optional(),
+          grade: Joi.number().integer().min(1).max(5).optional(),
           feedback: Joi.string().optional(),
         })
       ),
@@ -115,7 +115,7 @@ export const gradeAssignment = {
   }),
   body: Joi.object().keys({
     studentId: Joi.string().custom(objectId).required(),
-    grade: Joi.string().required(),
+    grade: Joi.number().integer().min(1).max(5).required(),
     feedback: Joi.string().optional(),
   }),
 };
@@ -127,7 +127,7 @@ export const updateSubmission = {
   body: Joi.object().keys({
     studentId: Joi.string().custom(objectId).required(),
     fileUrl: Joi.string().optional(),
-    grade: Joi.string().optional(),
+    grade: Joi.number().integer().min(1).max(5).optional(),
     feedback: Joi.string().optional(),
   }),
 };

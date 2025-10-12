@@ -2,15 +2,15 @@
 
 ## Collection
 
-### 1. Users 
+### 1. Users
 
 ```javascript
 {
   _id: ObjectId,
   name: String,
   email: String,
-  role: { type: String, enum: ['student', 'teacher', 'admin'] }, 
-  password: String, 
+  role: { type: String, enum: ['student', 'teacher', 'admin'] },
+  password: String,
   classes: [ObjectId],
   courses:[objectId],
   progress: [studentProgressId]
@@ -25,8 +25,8 @@
 {
   _id: ObjectId,
   name: String,
-  teacherId: ObjectId, 
-  courseId: ObjectId, 
+  teacherId: ObjectId,
+  courseId: ObjectId,
   students: [ObjectId],
   createdAt: Date,
   updatedAt: Date,
@@ -48,6 +48,7 @@
 ```
 
 ### Module Model
+
 ```javascript
 {
     _id: ObjectId,
@@ -64,7 +65,8 @@
 
 ```
 
-### 4. Syllabus 
+### 4. Syllabus
+
 ```javascript
 {
   _id: ObjectId,
@@ -79,12 +81,13 @@
 }
 ```
 
-### 5. Student Progress   
+### 5. Student Progress
+
 ```javascript
 {
   _id: ObjectId,
   studentId: ObjectId,
-  classId: ObjectId,  
+  classId: ObjectId,
   courseId: ObjectId,
   progress: { type: Number, min: 0, max: 100, default: 0 }, // percentage 1-100
   syllabusProgress: [{
@@ -92,7 +95,6 @@
     modules: [{
       moduleId: ObjectId,
       status: { type: String, enum: ['completed', 'inprogress', 'upcoming'], default: 'upcoming' },
-      remark: String,
       score: { type: Number, min: 0, max: 100 },
       startDate: Date,
       endDate: Date,

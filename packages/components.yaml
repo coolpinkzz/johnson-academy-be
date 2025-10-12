@@ -80,7 +80,7 @@ components:
         id: 507f1f77bcf86cd799439011
         name: Introduction to Programming
         description: Learn the basics of programming with hands-on exercises
-        syllabus: ["507f1f77bcf86cd799439012", "507f1f77bcf86cd799439013"]
+        syllabus: ['507f1f77bcf86cd799439012', '507f1f77bcf86cd799439013']
         createdAt: 2023-01-01T00:00:00.000Z
         updatedAt: 2023-01-01T00:00:00.000Z
 
@@ -193,25 +193,25 @@ components:
           format: date-time
       example:
         id: 507f1f77bcf86cd799439031
-        name: "Advanced Mathematics 101"
+        name: 'Advanced Mathematics 101'
         teacherId:
           _id: 507f1f77bcf86cd799439011
-          name: "Dr. Smith"
-          email: "smith@academy.com"
-          role: "teacher"
+          name: 'Dr. Smith'
+          email: 'smith@academy.com'
+          role: 'teacher'
         courseId:
           _id: 507f1f77bcf86cd799439012
-          title: "Advanced Mathematics"
-          description: "Advanced mathematical concepts and techniques"
+          title: 'Advanced Mathematics'
+          description: 'Advanced mathematical concepts and techniques'
         students:
           - _id: 507f1f77bcf86cd799439013
-            name: "John Doe"
-            email: "john@student.com"
-            role: "student"
+            name: 'John Doe'
+            email: 'john@student.com'
+            role: 'student'
           - _id: 507f1f77bcf86cd799439014
-            name: "Jane Smith"
-            email: "jane@student.com"
-            role: "student"
+            name: 'Jane Smith'
+            email: 'jane@student.com'
+            role: 'student'
         createdAt: 2023-01-01T00:00:00.000Z
         updatedAt: 2023-01-01T00:00:00.000Z
 
@@ -258,11 +258,11 @@ components:
       example:
         id: 507f1f77bcf86cd799439041
         courseId: 507f1f77bcf86cd799439011
-        title: "Introduction to Programming Syllabus"
-        description: "Complete syllabus for programming fundamentals"
-        theory: ["507f1f77bcf86cd799439021", "507f1f77bcf86cd799439022"]
-        technical: ["507f1f77bcf86cd799439023"]
-        learning: ["507f1f77bcf86cd799439024"]
+        title: 'Introduction to Programming Syllabus'
+        description: 'Complete syllabus for programming fundamentals'
+        theory: ['507f1f77bcf86cd799439021', '507f1f77bcf86cd799439022']
+        technical: ['507f1f77bcf86cd799439023']
+        learning: ['507f1f77bcf86cd799439024']
         createdAt: 2023-01-01T00:00:00.000Z
         updatedAt: 2023-01-01T00:00:00.000Z
 
@@ -277,9 +277,6 @@ components:
           type: string
           enum: [completed, inprogress, upcoming]
           description: Module progress status
-        remark:
-          type: string
-          description: Optional remark about the module
         score:
           type: number
           minimum: 0
@@ -300,7 +297,6 @@ components:
       example:
         moduleId: 507f1f77bcf86cd799439021
         status: completed
-        remark: Excellent performance
         score: 95
         startDate: 2023-01-01T00:00:00.000Z
         endDate: 2023-01-05T00:00:00.000Z
@@ -419,15 +415,11 @@ components:
           minimum: 0
           maximum: 100
           description: Module score (0-100)
-        remark:
-          type: string
-          description: Optional remark about the module
       example:
         moduleId: 507f1f77bcf86cd799439021
         syllabusId: 507f1f77bcf86cd799439041
         status: completed
         score: 95
-        remark: Excellent work
 
     StartModule:
       type: object
@@ -459,10 +451,6 @@ components:
           format: objectId
           required: true
           description: Syllabus ID
-        remark:
-          type: string
-          required: true
-          description: Remark about the module completion
         score:
           type: number
           minimum: 0
@@ -472,7 +460,6 @@ components:
       example:
         moduleId: 507f1f77bcf86cd799439021
         syllabusId: 507f1f77bcf86cd799439041
-        remark: Completed successfully
         score: 95
 
     ProgressStatistics:

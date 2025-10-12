@@ -50,11 +50,7 @@ router
 
 router
   .route('/:studentProgressId/end-module')
-  .post(
-    auth('manageStudentProgress'),
-    validate(studentProgressValidation.endModule),
-    studentProgressController.endModule
-  );
+  .post(auth('manageStudentProgress'), validate(studentProgressValidation.endModule), studentProgressController.endModule);
 
 router
   .route('/student/:studentId')
@@ -409,7 +405,7 @@ export default router;
  * /student-progress/{studentProgressId}/end-module:
  *   post:
  *     summary: End a module
- *     description: Mark a module as completed with final score and remarks.
+ *     description: Mark a module as completed with final score.
  *     tags: [StudentProgress]
  *     security:
  *       - bearerAuth: []
@@ -637,4 +633,4 @@ export default router;
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
- */ 
+ */

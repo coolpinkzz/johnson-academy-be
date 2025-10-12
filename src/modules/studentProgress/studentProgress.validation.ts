@@ -4,7 +4,6 @@ import { objectId } from '../validate/custom.validation';
 const moduleProgressSchema = Joi.object({
   moduleId: Joi.string().custom(objectId).required(),
   status: Joi.string().valid('completed', 'inprogress', 'upcoming').required(),
-  remark: Joi.string().trim().optional(),
   score: Joi.number().min(0).max(100).optional(),
   startDate: Joi.date().optional(),
   endDate: Joi.date().optional(),
@@ -45,7 +44,6 @@ const updateModuleProgressBody: Record<string, any> = {
   syllabusId: Joi.string().custom(objectId).required(),
   status: Joi.string().valid('completed', 'inprogress', 'upcoming').required(),
   score: Joi.number().min(0).max(100).optional(),
-  remark: Joi.string().trim().optional(),
 };
 
 const startModuleBody: Record<string, any> = {
@@ -56,7 +54,6 @@ const startModuleBody: Record<string, any> = {
 const endModuleBody: Record<string, any> = {
   moduleId: Joi.string().custom(objectId).required(),
   syllabusId: Joi.string().custom(objectId).required(),
-  remark: Joi.string().trim().required(),
   score: Joi.number().min(0).max(100).required(),
 };
 
@@ -151,4 +148,4 @@ export const getCourseProgressStatistics = {
   params: Joi.object().keys({
     courseId: Joi.string().custom(objectId).required(),
   }),
-}; 
+};

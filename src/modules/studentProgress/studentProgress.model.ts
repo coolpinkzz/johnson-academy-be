@@ -15,10 +15,6 @@ const moduleProgressSchema = new mongoose.Schema(
       enum: ['completed', 'inprogress', 'upcoming'],
       default: 'upcoming',
     },
-    remark: {
-      type: String,
-      trim: true,
-    },
     score: {
       type: Number,
       min: 0,
@@ -139,8 +135,7 @@ studentProgressSchema.methods['calculateProgress'] = async function (): Promise<
 studentProgressSchema.methods['updateModuleStatus'] = async function (
   moduleId: mongoose.Types.ObjectId,
   status: string,
-  score?: number,
-  remark?: string
+  score?: number
 ): Promise<void> {
   let moduleFound = false;
 
@@ -149,7 +144,6 @@ studentProgressSchema.methods['updateModuleStatus'] = async function (
     if (module) {
       module.status = status as 'completed' | 'inprogress' | 'upcoming';
       if (score !== undefined) module.score = score;
-      if (remark !== undefined) module.remark = remark;
 
       if (status === 'inprogress' && !module.startDate) {
         module.startDate = new Date();

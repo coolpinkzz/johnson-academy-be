@@ -63,6 +63,7 @@ export const getUsers = {
   query: Joi.object().keys({
     name: Joi.string().allow(''),
     role: Joi.string().valid('admin', 'teacher', 'student'),
+    rollNumber: Joi.string(),
     department: Joi.string(),
     gradeLevel: Joi.string(),
     isActive: Joi.boolean(),

@@ -165,7 +165,7 @@ export const updateModuleProgress = async (
     throw new ApiError(httpStatus.NOT_FOUND, 'Student progress not found');
   }
 
-  await studentProgress.updateModuleStatus(updateBody.moduleId, updateBody.status, updateBody.score, updateBody.remark);
+  await studentProgress.updateModuleStatus(updateBody.moduleId, updateBody.status, updateBody.score);
 
   return studentProgress;
 };
@@ -336,7 +336,7 @@ export const endModule = async (
   }
 
   // Use the existing updateModuleStatus method to update the module
-  await studentProgress.updateModuleStatus(endBody.moduleId, 'completed', endBody.score, endBody.remark);
+  await studentProgress.updateModuleStatus(endBody.moduleId, 'completed', endBody.score);
 
   return studentProgress;
 };

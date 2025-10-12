@@ -4,7 +4,6 @@ import { QueryResult } from '../paginate/paginate';
 export interface IModuleProgress {
   moduleId: mongoose.Types.ObjectId;
   status: 'completed' | 'inprogress' | 'upcoming';
-  remark?: string;
   score?: number;
   startDate?: Date;
   endDate?: Date;
@@ -30,7 +29,7 @@ export interface IStudentProgress {
 
 export interface IStudentProgressDoc extends IStudentProgress, Document {
   calculateProgress(): Promise<number>;
-  updateModuleStatus(moduleId: mongoose.Types.ObjectId, status: string, score?: number, remark?: string): Promise<void>;
+  updateModuleStatus(moduleId: mongoose.Types.ObjectId, status: string, score?: number): Promise<void>;
 }
 
 export interface IStudentProgressModel extends Model<IStudentProgressDoc> {
@@ -58,7 +57,6 @@ export interface IUpdateModuleProgressBody {
   syllabusId: mongoose.Types.ObjectId;
   status: 'completed' | 'inprogress' | 'upcoming';
   score?: number;
-  remark?: string;
 }
 
 export interface IStartModuleBody {
@@ -69,6 +67,5 @@ export interface IStartModuleBody {
 export interface IEndModuleBody {
   moduleId: mongoose.Types.ObjectId;
   syllabusId: mongoose.Types.ObjectId;
-  remark: string;
   score: number;
 }

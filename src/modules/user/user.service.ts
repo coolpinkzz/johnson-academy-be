@@ -90,6 +90,11 @@ export const queryUsers = async (filter: Record<string, any>, options: IOptions)
     transformedFilter['name'] = { $regex: transformedFilter['name'], $options: 'i' };
   }
 
+  if (transformedFilter['rollNumber']) {
+    // Convert rollNumber filter to case-insensitive regex for partial matching
+    transformedFilter['rollNumber'] = { $regex: transformedFilter['rollNumber'], $options: 'i' };
+  }
+
   const users = await User.paginate(transformedFilter, options);
   return users;
 };

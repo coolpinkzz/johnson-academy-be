@@ -4,9 +4,9 @@ import { NewCreatedClasses } from './classes.interfaces';
 
 const createClassesBody: Record<keyof NewCreatedClasses, any> = {
   name: Joi.string().required(),
-  teacherId: Joi.string().custom(objectId).required(),
-  courseId: Joi.string().custom(objectId).required(),
-  students: Joi.array().items(Joi.string().custom(objectId)).optional(),
+  teacherId: Joi.string().required(),
+  courseId: Joi.string().required(),
+  students: Joi.array().items(Joi.string()).optional(),
 };
 
 export const createClasses = {
@@ -76,4 +76,4 @@ export const bulkAddStudentsToClass = {
   body: Joi.object().keys({
     studentIds: Joi.array().items(Joi.string().custom(objectId)).min(1).required(),
   }),
-}; 
+};

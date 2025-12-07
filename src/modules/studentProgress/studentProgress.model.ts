@@ -237,20 +237,32 @@ studentProgressSchema.static(
   async function (
     studentId: mongoose.Types.ObjectId,
     classId: mongoose.Types.ObjectId,
-    courseId: mongoose.Types.ObjectId
+    courseId: mongoose.Types.ObjectId | any
   ): Promise<IStudentProgressDoc> {
     // Import required models
     const Course = mongoose.model('Course');
     const Syllabus = mongoose.model('Syllabus');
 
+    // Extract actual courseId if it's a populated object
+    const actualCourseId = courseId && typeof courseId === 'object' && courseId._id ? courseId._id : courseId;
+
     // Get course and its syllabi
-    const course = await Course.findById(courseId);
+    const course = await Course.findById(actualCourseId);
     if (!course) {
       throw new Error('Course not found');
     }
 
-    // Get all syllabi for the course
-    const syllabi = await Syllabus.find({ courseId });
+    // Use the course's syllabus array to get syllabi directly
+    // If syllabus array exists and has values, use it; otherwise fall back to querying by courseId
+    let syllabi = [];
+    if (course.syllabus && Array.isArray(course.syllabus) && course.syllabus.length > 0) {
+      // Get syllabi by their IDs from the course's syllabus array
+      syllabi = await Syllabus.find({ _id: { $in: course.syllabus } });
+    } else {
+      // Fallback: query syllabi by courseId
+      syllabi = await Syllabus.find({ courseId: actualCourseId });
+    }
+
     if (syllabi.length === 0) {
       throw new Error('No syllabi found for this course');
     }
@@ -288,7 +300,7 @@ studentProgressSchema.static(
     const progressData = {
       studentId,
       classId,
-      courseId,
+      courseId: actualCourseId,
       progress: 0,
       syllabusProgress,
       totalModules,

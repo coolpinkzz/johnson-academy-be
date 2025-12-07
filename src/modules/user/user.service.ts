@@ -1,6 +1,7 @@
 import httpStatus from 'http-status';
 import mongoose from 'mongoose';
 import User from './user.model';
+import Classes from '../classes/classes.model';
 import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedUser, UpdateUserBody, IUserDoc, NewRegisteredUser } from './user.interfaces';
@@ -95,7 +96,42 @@ export const queryUsers = async (filter: Record<string, any>, options: IOptions)
     transformedFilter['rollNumber'] = { $regex: transformedFilter['rollNumber'], $options: 'i' };
   }
 
-  const users = await User.paginate(transformedFilter, options);
+  // If filtering by teacher role, populate courses
+  const queryOptions = { ...options };
+  if (transformedFilter['role'] === 'teacher' && !queryOptions.populate) {
+    queryOptions.populate = 'courses';
+  }
+
+  const users = await User.paginate(transformedFilter, queryOptions);
+
+  // If filtering by teacher role, populate classes from Classes model where teacherId matches
+  if (transformedFilter['role'] === 'teacher' && users.results.length > 0) {
+    const teacherIds = users.results.map((user) => user._id);
+
+    // Find all classes where teacherId matches any of the teachers
+    const allClasses = await Classes.find({ teacherId: { $in: teacherIds } })
+      .populate('courseId')
+      .populate('students');
+
+    // Group classes by teacherId
+    const classesByTeacher = allClasses.reduce((acc: any, cls: any) => {
+      const teacherId = cls.teacherId.toString();
+      if (!acc[teacherId]) {
+        acc[teacherId] = [];
+      }
+      acc[teacherId].push(cls);
+      return acc;
+    }, {});
+
+    // Attach classes to each teacher
+    users.results = users.results.map((user: any) => {
+      const userObj = user.toObject ? user.toObject() : user;
+      const teacherId = userObj._id.toString();
+      userObj.classes = classesByTeacher[teacherId] || [];
+      return userObj;
+    });
+  }
+
   return users;
 };
 

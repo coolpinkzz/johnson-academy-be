@@ -16,6 +16,8 @@ import { NewCreatedClasses, UpdateClassesBody, IClassesDoc } from './classes.int
  */
 export const createClasses = async (classesBody: NewCreatedClasses): Promise<IClassesDoc> => {
   // Validate that the teacher exists and is a teacher
+  //  Error: ""teacherId"" must be a valid mongo id
+
   const teacher = await User.findById(classesBody.teacherId);
   if (!teacher) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Teacher not found');
@@ -44,6 +46,7 @@ export const createClasses = async (classesBody: NewCreatedClasses): Promise<ICl
     }
   }
 
+  console.log('classesBody', classesBody);
   const createdClass = await Classes.create(classesBody);
 
   // Create progress records and attendance records for all students added to the class and update user model
@@ -171,6 +174,7 @@ export const updateClassesById = async (
   classesId: mongoose.Types.ObjectId,
   updateBody: UpdateClassesBody
 ): Promise<IClassesDoc | null> => {
+  // add proper logs
   const classes = await getClassesById(classesId);
   if (!classes) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Class not found');
@@ -227,12 +231,18 @@ export const updateClassesById = async (
 
     // Add class to new students and create progress records and attendance records
     if (studentsToAdd.length > 0) {
+      // Extract courseId - handle both populated object and ObjectId
+      const courseId =
+        classes.courseId && typeof classes.courseId === 'object' && classes.courseId._id
+          ? classes.courseId._id
+          : classes.courseId;
+
       const progressPromises = studentsToAdd.map(async (studentId) => {
         // Create progress record
         const progress = await StudentProgress.createProgressForStudent(
           new mongoose.Types.ObjectId(studentId),
           classesId,
-          classes.courseId
+          courseId
         );
 
         // Create attendance record with current date as joining date
@@ -246,7 +256,7 @@ export const updateClassesById = async (
         await User.findByIdAndUpdate(studentId, {
           $addToSet: {
             classes: classesId,
-            courses: classes.courseId,
+            courses: courseId,
             progress: progress._id,
           },
         });
@@ -346,9 +356,15 @@ export const bulkAddStudentsToClass = async (
 
   // Create progress records and attendance records for newly added students and update user model
   if (newStudentIds.length > 0) {
+    // Extract courseId - handle both populated object and ObjectId
+    const courseId =
+      classes.courseId && typeof classes.courseId === 'object' && classes.courseId._id
+        ? classes.courseId._id
+        : classes.courseId;
+
     const progressPromises = newStudentIds.map(async (studentId) => {
       // Create progress record
-      const progress = await StudentProgress.createProgressForStudent(studentId, classesId, classes.courseId);
+      const progress = await StudentProgress.createProgressForStudent(studentId, classesId, courseId);
 
       // Create attendance record with current date as joining date
       const attendance = await StudentAttendance.create({
@@ -361,7 +377,7 @@ export const bulkAddStudentsToClass = async (
       await User.findByIdAndUpdate(studentId, {
         $addToSet: {
           classes: classesId,
-          courses: classes.courseId,
+          courses: courseId,
           progress: progress._id,
         },
       });

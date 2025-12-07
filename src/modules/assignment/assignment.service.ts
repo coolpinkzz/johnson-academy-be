@@ -95,7 +95,7 @@ export const queryAssignments = async (filter: Record<string, any>, options: IOp
  * @returns {Promise<IAssignmentDoc | null>}
  */
 export const getAssignmentById = async (id: mongoose.Types.ObjectId): Promise<IAssignmentDoc | null> =>
-  Assignment.findById(id)
+  await Assignment.findById(id)
     .populate('students')
     .populate('teacherId')
     .populate('classId')
@@ -107,26 +107,31 @@ export const getAssignmentById = async (id: mongoose.Types.ObjectId): Promise<IA
  * @param {mongoose.Types.ObjectId} studentId
  * @returns {Promise<IAssignmentDoc[]>}
  */
-export const getAssignmentsByStudentId = async (studentId: mongoose.Types.ObjectId): Promise<IAssignmentDoc[]> =>
-  Assignment.find({ students: studentId })
+export const getAssignmentsByStudentId = async (studentId: mongoose.Types.ObjectId): Promise<IAssignmentDoc[]> => {
+  const assignments = await Assignment.find({ students: studentId })
     .populate('students')
     .populate('teacherId')
     .populate('classId')
     .populate('createdBy')
     .populate('submissions.student');
+  return assignments;
+};
 
 /**
  * Get assignments by class id
  * @param {mongoose.Types.ObjectId} classId
  * @returns {Promise<IAssignmentDoc[]>}
  */
-export const getAssignmentsByClassId = async (classId: mongoose.Types.ObjectId): Promise<IAssignmentDoc[]> =>
-  Assignment.find({ classId })
+export const getAssignmentsByClassId = async (classId: mongoose.Types.ObjectId): Promise<IAssignmentDoc[]> => {
+  const assignment = await Assignment.find({ classId })
     .populate('students')
     .populate('teacherId')
     .populate('classId')
     .populate('createdBy')
     .populate('submissions.student');
+
+  return assignment;
+};
 
 /**
  * Get assignments by teacher id
@@ -134,7 +139,7 @@ export const getAssignmentsByClassId = async (classId: mongoose.Types.ObjectId):
  * @returns {Promise<IAssignmentDoc[]>}
  */
 export const getAssignmentsByTeacherId = async (teacherId: mongoose.Types.ObjectId): Promise<IAssignmentDoc[]> =>
-  Assignment.find({ teacherId })
+  await Assignment.find({ teacherId })
     .populate('students')
     .populate('teacherId')
     .populate('classId')
@@ -354,7 +359,7 @@ export const updateSubmission = async (
  * @returns {Promise<IAssignmentDoc[]>}
  */
 export const getAllAssignments = async (): Promise<IAssignmentDoc[]> => {
-  return Assignment.find()
+  return await Assignment.find()
     .populate('students')
     .populate('teacherId')
     .populate('classId')
@@ -371,7 +376,7 @@ export const getAssignmentsDueSoon = async (days: number = 7): Promise<IAssignme
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + days);
 
-  return Assignment.find({
+  return await Assignment.find({
     dueDate: { $lte: futureDate, $gte: new Date() },
     status: { $in: ['assigned', 'submitted'] },
   })
@@ -387,7 +392,7 @@ export const getAssignmentsDueSoon = async (days: number = 7): Promise<IAssignme
  * @returns {Promise<IAssignmentDoc[]>}
  */
 export const getOverdueAssignments = async (): Promise<IAssignmentDoc[]> => {
-  return Assignment.find({
+  return await Assignment.find({
     dueDate: { $lt: new Date() },
     status: { $in: ['assigned', 'submitted'] },
   })
@@ -408,7 +413,7 @@ export const getAssignmentsByClassAndStudent = async (
   classId: mongoose.Types.ObjectId,
   studentId: mongoose.Types.ObjectId
 ): Promise<IAssignmentDoc[]> => {
-  return Assignment.find({ classId, studentId })
+  return await Assignment.find({ classId, studentId })
     .populate('students')
     .populate('teacherId')
     .populate('classId')

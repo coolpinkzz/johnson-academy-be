@@ -13,6 +13,7 @@ export const createClasses = catchAsync(async (req: Request, res: Response) => {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can create classes');
   }
 
+  console.log('req.body', req.body);
   const classes = await classesService.createClasses(req.body);
   res.status(httpStatus.CREATED).send(classes);
 });

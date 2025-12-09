@@ -46,7 +46,6 @@ export const getAssignmentsByStudent = catchAsync(async (req: Request, res: Resp
 export const getAssignmentsByClass = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['classId'] === 'string') {
     const assignments = await assignmentService.getAssignmentsByClassId(new mongoose.Types.ObjectId(req.params['classId']));
-    console.log('assignments', assignments);
     res.status(httpStatus.OK).send(assignments);
   }
 });

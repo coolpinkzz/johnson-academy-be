@@ -46,7 +46,6 @@ export const createClasses = async (classesBody: NewCreatedClasses): Promise<ICl
     }
   }
 
-  console.log('classesBody', classesBody);
   const createdClass = await Classes.create(classesBody);
 
   // Create progress records and attendance records for all students added to the class and update user model

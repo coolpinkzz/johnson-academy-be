@@ -60,6 +60,15 @@ if (config.env === 'production') {
   app.use('/v1/auth', authLimiter);
 }
 
+// health check route
+app.get('/health', (_req, res) => {
+  res.status(httpStatus.OK).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
 // v1 api routes
 app.use('/v1', routes);
 

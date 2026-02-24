@@ -91,11 +91,12 @@ export const createClasses = async (classesBody: NewCreatedClasses): Promise<ICl
  * @returns {Promise<QueryResult>}
  */
 export const queryClasses = async (filter: Record<string, any>, options: IOptions): Promise<QueryResult> => {
-  // Ensure course is populated if not already specified
+  // Ensure course and students are populated if not already specified
   if (!options.populate) {
-    options.populate = 'courseId';
-  } else if (!options.populate.includes('courseId')) {
-    options.populate += ',courseId';
+    options.populate = 'courseId,students';
+  } else {
+    if (!options.populate.includes('courseId')) options.populate += ',courseId';
+    if (!options.populate.includes('students')) options.populate += ',students';
   }
 
   // Set default sort to latest to oldest if no sort is specified

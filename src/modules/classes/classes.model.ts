@@ -26,6 +26,12 @@ const classesSchema = new mongoose.Schema<IClassesDoc, IClassesModel>(
         ref: 'User',
       },
     ],
+    studentsInClass: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        course: { type: mongoose.Schema.Types.ObjectId, ref: 'Course' },
+      },
+    ],
   },
   {
     timestamps: true,

@@ -1,11 +1,17 @@
 import mongoose, { Model, Document } from 'mongoose';
 import { QueryResult } from '../paginate/paginate';
 
+export interface IStudentInClass {
+  user: mongoose.Types.ObjectId;
+  course: mongoose.Types.ObjectId;
+}
+
 export interface IClasses {
   name: string;
   teacherId: mongoose.Types.ObjectId;
   courseId: mongoose.Types.ObjectId;
   students: mongoose.Types.ObjectId[];
+  studentsInClass?: IStudentInClass[];
 }
 
 export interface IClassesDoc extends IClasses, Document {}

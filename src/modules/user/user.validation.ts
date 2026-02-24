@@ -7,9 +7,7 @@ const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 
   password: Joi.string().required().custom(password),
   name: Joi.string().required(),
   role: Joi.string().required().valid('admin', 'teacher', 'student'),
-  rollNumber: Joi.string()
-    .pattern(/^JA\/[A-Z]{3}\/\d{4}$/)
-    .required(),
+  rollNumber: Joi.string().required(),
   studentId: Joi.string().when('role', {
     is: 'student',
     then: Joi.required(),

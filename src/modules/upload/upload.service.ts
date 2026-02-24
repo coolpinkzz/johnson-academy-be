@@ -28,8 +28,8 @@ class UploadService {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid file type. Only images and PDFs are allowed.');
       }
 
-      // Validate file size (10MB limit for documents, 5MB for images)
-      const maxSize = this.isImageFile(file.mimetype) ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+      // Validate file size (10MB limit for both images and documents)
+      const maxSize = 10 * 1024 * 1024;
       if (file.size > maxSize) {
         const maxSizeMB = maxSize / (1024 * 1024);
         throw new ApiError(httpStatus.BAD_REQUEST, `File size too large. Maximum size is ${maxSizeMB}MB.`);
@@ -87,11 +87,6 @@ class UploadService {
     const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     const validDocumentTypes = ['application/pdf'];
     return [...validImageTypes, ...validDocumentTypes].includes(mimetype);
-  }
-
-  private isImageFile(mimetype: string): boolean {
-    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    return validImageTypes.includes(mimetype);
   }
 }
 

@@ -7,6 +7,14 @@ const createClassesBody: Record<keyof NewCreatedClasses, any> = {
   teacherId: Joi.string().required(),
   courseId: Joi.string().required(),
   students: Joi.array().items(Joi.string()).optional(),
+  studentsInClass: Joi.array()
+    .items(
+      Joi.object({
+        user: Joi.string().custom(objectId),
+        course: Joi.string().custom(objectId),
+      })
+    )
+    .optional(),
 };
 
 export const createClasses = {

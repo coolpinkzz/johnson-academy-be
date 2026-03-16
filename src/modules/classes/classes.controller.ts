@@ -112,3 +112,16 @@ export const bulkAddStudentsToClass = catchAsync(async (req: Request, res: Respo
     res.status(httpStatus.OK).send(classes);
   }
 });
+
+export const addSingleStudentToClass = catchAsync(async (req: Request, res: Response) => {
+  const classesId = req.params['classesId'];
+  if (typeof classesId === 'string') {
+    const { studentId, courseId } = req.body;
+    const classes = await classesService.addSingleStudentToClass(
+      new mongoose.Types.ObjectId(classesId),
+      studentId,
+      courseId
+    );
+    res.status(httpStatus.OK).send(classes);
+  }
+});

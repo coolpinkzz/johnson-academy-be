@@ -66,6 +66,13 @@ router.route('/:classesId/students/bulk-add').post(
   classesController.bulkAddStudentsToClass
 );
 
+// create a version 2 route to add the single student with courseId to the class which will required the studentsInClass array
+router.route('/:classesId/add-student').patch(
+  authMiddleware('manageClasses'), // Only admins can bulk add students to classes
+  validate(classesValidation.addSingleStudentToClass),
+  classesController.addSingleStudentToClass
+);
+
 router.route('/:classesId/students').get(
   authMiddleware('getClasses'), // All authenticated users can view students in a class
   validate(classesValidation.getClass),

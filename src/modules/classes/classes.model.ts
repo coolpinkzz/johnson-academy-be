@@ -17,7 +17,7 @@ const classesSchema = new mongoose.Schema<IClassesDoc, IClassesModel>(
     },
     courseId: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      required: false,
       ref: 'Course',
     },
     students: [
@@ -28,6 +28,7 @@ const classesSchema = new mongoose.Schema<IClassesDoc, IClassesModel>(
     ],
     studentsInClass: [
       {
+        _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
         user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         course: { type: mongoose.Schema.Types.ObjectId, ref: 'Course' },
       },

@@ -27,18 +27,17 @@ async function migrate() {
         skipped += 1;
         continue;
       }
+      // if studentsInClass array is empty or undefined, then create it
+      if (!Array.isArray(classDoc.studentsInClass) || classDoc.studentsInClass.length === 0) {
+        classDoc.studentsInClass = students.map((userId) => ({
+          user: userId,
+          course: courseId,
+        }));
+      }
 
-      const studentsInClass = students.map((userId) => ({
-        user: userId,
-        course: courseId,
-      }));
-
-      await Classes.updateOne(
-        { _id: classDoc._id },
-        { $set: { studentsInClass } }
-      );
+      await Classes.updateOne({ _id: classDoc._id }, { $set: { studentsInClass: classDoc.studentsInClass } });
       updated += 1;
-      logger.info(`Updated class ${classDoc._id} with ${studentsInClass.length} student(s) in class`);
+      logger.info(`Updated class ${classDoc._id} with ${classDoc.studentsInClass.length} student(s) in class`);
     }
 
     logger.info(`Migration done. Updated: ${updated}, Skipped (no students): ${skipped}`);

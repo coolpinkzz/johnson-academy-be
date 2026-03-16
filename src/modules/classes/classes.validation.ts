@@ -1,12 +1,11 @@
 import Joi from 'joi';
 import { objectId } from '../validate/custom.validation';
-import { NewCreatedClasses } from './classes.interfaces';
 
-const createClassesBody: Record<keyof NewCreatedClasses, any> = {
+const createClassesBody = {
   name: Joi.string().required(),
   teacherId: Joi.string().required(),
-  courseId: Joi.string().required(),
-  students: Joi.array().items(Joi.string()).optional(),
+  // courseId: Joi.string().required().optional(),
+  // students: Joi.array().items(Joi.string()).optional(),
   studentsInClass: Joi.array()
     .items(
       Joi.object({
@@ -83,5 +82,15 @@ export const bulkAddStudentsToClass = {
   }),
   body: Joi.object().keys({
     studentIds: Joi.array().items(Joi.string().custom(objectId)).min(1).required(),
+  }),
+};
+
+export const addSingleStudentToClass = {
+  params: Joi.object().keys({
+    classesId: Joi.string().custom(objectId).required(),
+  }),
+  body: Joi.object().keys({
+    studentId: Joi.string().custom(objectId).required(),
+    courseId: Joi.string().custom(objectId).required(),
   }),
 };

@@ -26,25 +26,19 @@ export const createClasses = async (classesBody: NewCreatedClasses): Promise<ICl
     throw new ApiError(httpStatus.BAD_REQUEST, 'User must be a teacher to be assigned to a class');
   }
 
-  // Validate that the course exists
-  const course = await Course.findById(classesBody.courseId);
-  if (!course) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Course not found');
-  }
-
   // Validate that all students exist and are students
-  if (classesBody.students && classesBody.students.length > 0) {
-    const students = await User.find({
-      _id: { $in: classesBody.students },
-      role: 'student',
-    });
+  // if (classesBody.students && classesBody.students.length > 0) {
+  //   const students = await User.find({
+  //     _id: { $in: classesBody.students },
+  //     role: 'student',
+  //   });
 
-    if (students.length !== classesBody.students.length) {
-      const existingStudentIds = students.map((student) => student._id.toString());
-      const missingStudentIds = classesBody.students.filter((id) => !existingStudentIds.includes(id.toString()));
-      throw new ApiError(httpStatus.NOT_FOUND, `Students not found or not valid students: ${missingStudentIds.join(', ')}`);
-    }
-  }
+  //   if (students.length !== classesBody.students.length) {
+  //     const existingStudentIds = students.map((student) => student._id.toString());
+  //     const missingStudentIds = classesBody.students.filter((id) => !existingStudentIds.includes(id.toString()));
+  //     throw new ApiError(httpStatus.NOT_FOUND, `Students not found or not valid students: ${missingStudentIds.join(', ')}`);
+  //   }
+  // }
 
   const createdClass = await Classes.create(classesBody);
 
@@ -91,13 +85,16 @@ export const createClasses = async (classesBody: NewCreatedClasses): Promise<ICl
  * @returns {Promise<QueryResult>}
  */
 export const queryClasses = async (filter: Record<string, any>, options: IOptions): Promise<QueryResult> => {
-  // Ensure course and students are populated if not already specified
-  if (!options.populate) {
-    options.populate = 'courseId,students';
-  } else {
-    if (!options.populate.includes('courseId')) options.populate += ',courseId';
-    if (!options.populate.includes('students')) options.populate += ',students';
-  }
+  // Ensure course/students and nested studentsInClass refs are populated (like getClassesByTeacherId)
+  const requiredPopulate = ['courseId', 'students', 'studentsInClass.user', 'studentsInClass.course'];
+  const existingPopulate = (options.populate || '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const populateSet = new Set(existingPopulate);
+  requiredPopulate.forEach((p) => populateSet.add(p));
+  options.populate = Array.from(populateSet).join(',');
 
   // Set default sort to latest to oldest if no sort is specified
   if (!options.sortBy) {
@@ -105,6 +102,17 @@ export const queryClasses = async (filter: Record<string, any>, options: IOption
   }
 
   const classes = await Classes.paginate(filter, options);
+
+  //populate teacherId
+  await Classes.populate(classes.results, {
+    path: 'teacherId',
+  });
+  // Ensure nested population for studentsInClass (user & course), mirroring getClassesByTeacherId
+  await Classes.populate(classes.results, {
+    path: 'studentsInClass',
+    populate: [{ path: 'user' }, { path: 'course' }],
+  });
+
   return classes;
 };
 
@@ -122,7 +130,14 @@ export const getClassesById = async (id: mongoose.Types.ObjectId): Promise<IClas
  * @returns {Promise<IClassesDoc[]>}
  */
 export const getClassesByTeacherId = async (teacherId: mongoose.Types.ObjectId): Promise<IClassesDoc[]> =>
-  Classes.find({ teacherId }).populate('teacherId').populate('courseId').populate('students');
+  Classes.find({ teacherId })
+    .populate('teacherId')
+    .populate('courseId')
+    .populate('students')
+    .populate({
+      path: 'studentsInClass',
+      populate: [{ path: 'user' }, { path: 'course' }],
+    });
 
 /**
  * Get classes by course id
@@ -140,18 +155,32 @@ export const getClassesByCourseId = async (courseId: mongoose.Types.ObjectId): P
 export const getClassesByStudentId = async (studentId: mongoose.Types.ObjectId): Promise<any[]> => {
   const classes = await Classes.find({ students: studentId })
     .populate('teacherId')
-    .populate('courseId')
     .populate({
       path: 'students',
       match: { _id: studentId },
     });
 
-  // Transform the result to make students a single object instead of array
+  // Collect unique course IDs from studentsInClass for this student
+  const courseIds = [...new Set(classes.map((cls) => cls.studentsInClass?.find((s) => s.user?.toString() === studentId.toString())?.course).filter(Boolean))] as mongoose.Types.ObjectId[];
+
+  // Batch fetch courses for studentsInClass
+  const courses = courseIds.length > 0 ? await Course.find({ _id: { $in: courseIds } }).lean() : [];
+  const courseMap = new Map(courses.map((c: any) => [c._id.toString(), c]));
+
+  // Transform the result: use course from studentsInClass for courseId, students as single object
   return classes.map((cls) => {
     const transformedClass = cls.toObject({
       virtuals: true, // This preserves virtual fields like 'id'
       versionKey: false, // This removes the __v field
     }) as any;
+
+    // Set courseId from student's studentsInClass entry (populated course)
+    const studentEntry = cls.studentsInClass?.find((s) => s.user?.toString() === studentId.toString());
+    const courseIdFromStudent = studentEntry?.course;
+    transformedClass.courseId = courseIdFromStudent ? courseMap.get(courseIdFromStudent.toString()) ?? courseIdFromStudent : null;
+
+    // Remove studentsInClass from response
+    delete transformedClass.studentsInClass;
 
     if (transformedClass.students && Array.isArray(transformedClass.students) && transformedClass.students.length > 0) {
       // Since we're only matching one student, take the first one
@@ -412,4 +441,60 @@ export const getStudentsByClassId = async (classesId: mongoose.Types.ObjectId): 
   }
 
   return classes.students || [];
+};
+
+//addSingleStudentToClass
+
+export const addSingleStudentToClass = async (
+  classesId: mongoose.Types.ObjectId,
+  studentId: mongoose.Types.ObjectId,
+  courseId: mongoose.Types.ObjectId
+): Promise<any | null> => {
+  const classes = await getClassesById(classesId);
+  if (!classes) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Class not found');
+  }
+
+  // Validate that the student exists and is a student
+  const student = await User.findById(studentId);
+  if (!student) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Student not found');
+  }
+  if (student.role !== 'student') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'User must be a student to be added to a class');
+  }
+
+  // Validate that the course exists
+  const course = await Course.findById(courseId);
+  if (!course) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Course not found');
+  }
+
+  // Check if the student is already in the class
+  const existingStudent = classes.studentsInClass?.find((student) => student.user.toString() === studentId.toString());
+  if (existingStudent) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Student is already in the class');
+  }
+
+  // Add the student to the class also add to students array
+  const updatedClasses = await Classes.findByIdAndUpdate(
+    classesId,
+    { $addToSet: { studentsInClass: { user: studentId, course: courseId }, students: studentId } },
+    { new: true }
+  );
+  // Create progress records and attendance records for single student added to the class and update user model
+
+  const progress = await StudentProgress.createProgressForStudent(studentId, classesId, courseId);
+
+  const attendance = await StudentAttendance.create({
+    studentId: new mongoose.Types.ObjectId(studentId),
+    classId: classesId,
+    joiningDate: new Date(),
+  });
+
+  await User.findByIdAndUpdate(studentId, {
+    $addToSet: { classes: classesId, courses: courseId, progress: progress._id },
+  });
+
+  return { updatedClasses, progress, attendance };
 };

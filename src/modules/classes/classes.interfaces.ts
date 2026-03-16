@@ -22,4 +22,4 @@ export interface IClassesModel extends Model<IClassesDoc> {
 
 export type UpdateClassesBody = Partial<IClasses>;
 
-export type NewCreatedClasses = Omit<IClasses, '_id'>; 
+export type NewCreatedClasses = Omit<IClasses, '_id'>;

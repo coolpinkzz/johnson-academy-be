@@ -36,7 +36,8 @@
     "prepare": "husky install",
     "release": "standard-version && git push --follow-tags origin master",
     "commit": "git add -A && cz",
-    "script:migrate-students-in-class": "node dist/scripts/migrateStudentsInClass.js"
+    "script:migrate-students-in-class": "node dist/scripts/migrateStudentsInClass.js",
+    "script:delete-all-classes": "node dist/scripts/deleteAllClasses.js"
   },
   "keywords": [
     "node",

@@ -88,6 +88,7 @@ export const updateUser = {
       email: Joi.string().email(),
       password: Joi.string().custom(password),
       name: Joi.string(),
+      rollNumber: Joi.string(),
       profilePicture: Joi.string().uri().allow('').optional(),
       phoneNumber: Joi.string().pattern(/^\+?[\d\s-()]+$/),
       isCompleteProfile: Joi.boolean().optional(),

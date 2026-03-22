@@ -311,6 +311,7 @@ export const updateClassesById = async (
 
 /**
  * Delete class by id
+ * Cleans up related records: StudentProgress, StudentAttendance, and User refs (classes, courses, progress)
  * @param {mongoose.Types.ObjectId} classesId
  * @returns {Promise<IClassesDoc | null>}
  */
@@ -320,10 +321,51 @@ export const deleteClassesById = async (classesId: mongoose.Types.ObjectId): Pro
     throw new ApiError(httpStatus.NOT_FOUND, 'Class not found');
   }
 
-  // Remove class from all students' classes array
-  if (classes.students && classes.students.length > 0) {
-    await User.updateMany({ _id: { $in: classes.students } }, { $pull: { classes: classesId } });
+  // Build student -> course map from studentsInClass (each student can have their own course)
+  const studentCourseMap = new Map<string, mongoose.Types.ObjectId>();
+  const studentsInClass = (classes.studentsInClass ?? []) as { user: mongoose.Types.ObjectId; course: mongoose.Types.ObjectId }[];
+  for (const entry of studentsInClass) {
+    const userId = entry.user?.toString?.() ?? entry.user;
+    const courseId = entry.course && (typeof entry.course === 'object' && entry.course._id ? entry.course._id : entry.course);
+    if (userId && courseId) studentCourseMap.set(userId, courseId);
   }
+
+  // Get all progress records for this class and remove from User model
+  const progressRecords = await StudentProgress.find({ classId: classesId }).lean();
+  const studentsWithProgress = new Set<string>();
+
+  for (const progress of progressRecords) {
+    const progressCourseId = progress.courseId;
+    const progressId = progress._id;
+    const studentId = progress.studentId;
+    studentsWithProgress.add(studentId.toString());
+
+    const pullOp: Record<string, unknown> = {
+      classes: classesId,
+      progress: progressId,
+    };
+    if (progressCourseId) pullOp['courses'] = progressCourseId;
+
+    await User.findByIdAndUpdate(studentId, { $pull: pullOp });
+  }
+
+  // For students in class without progress record, still remove class/course refs (use studentsInClass for course)
+  const classStudents = (classes.students ?? []) as mongoose.Types.ObjectId[];
+  for (const studentId of classStudents) {
+    if (studentsWithProgress.has(studentId.toString())) continue;
+
+    const pullOp: Record<string, unknown> = { classes: classesId };
+    const courseId = studentCourseMap.get(studentId.toString());
+    if (courseId) pullOp['courses'] = courseId;
+
+    await User.findByIdAndUpdate(studentId, { $pull: pullOp });
+  }
+
+  // Delete StudentProgress for this class
+  await StudentProgress.deleteMany({ classId: classesId });
+
+  // Delete StudentAttendance for this class
+  await StudentAttendance.deleteMany({ classId: classesId });
 
   await classes.deleteOne();
   return classes;

@@ -125,3 +125,20 @@ export const addSingleStudentToClass = catchAsync(async (req: Request, res: Resp
     res.status(httpStatus.OK).send(classes);
   }
 });
+
+export const removeStudentFromClass = catchAsync(async (req: Request, res: Response) => {
+  // Check if user is admin - only admins can remove students from classes
+  if (req.user && req.user.role !== 'admin') {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can remove students from classes');
+  }
+
+  const classesId = req.params['classesId'];
+  if (typeof classesId === 'string') {
+    const { studentId } = req.body;
+    const classes = await classesService.removeStudentFromClass(
+      new mongoose.Types.ObjectId(classesId),
+      new mongoose.Types.ObjectId(studentId)
+    );
+    res.status(httpStatus.OK).send(classes);
+  }
+});

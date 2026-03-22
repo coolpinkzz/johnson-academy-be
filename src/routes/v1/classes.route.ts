@@ -73,6 +73,12 @@ router.route('/:classesId/add-student').patch(
   classesController.addSingleStudentToClass
 );
 
+router.route('/:classesId/remove-student').patch(
+  authMiddleware('manageClasses'), // Only admins can remove students from classes
+  validate(classesValidation.removeStudentFromClass),
+  classesController.removeStudentFromClass
+);
+
 router.route('/:classesId/students').get(
   authMiddleware('getClasses'), // All authenticated users can view students in a class
   validate(classesValidation.getClass),

@@ -540,3 +540,75 @@ export const addSingleStudentToClass = async (
 
   return { updatedClasses, progress, attendance };
 };
+
+/**
+ * Remove a student from a class.
+ * Checks studentsInClass for presence. Cleans up:
+ * - Class: removes from studentsInClass and students arrays
+ * - User: removes class, course, and progress refs
+ * - StudentProgress: deletes the progress record for this student+class
+ * - StudentAttendance: deletes the attendance record
+ * @param {mongoose.Types.ObjectId} classesId
+ * @param {mongoose.Types.ObjectId} studentId
+ * @returns {Promise<IClassesDoc | null>}
+ */
+export const removeStudentFromClass = async (
+  classesId: mongoose.Types.ObjectId,
+  studentId: mongoose.Types.ObjectId
+): Promise<IClassesDoc | null> => {
+  const classes = await getClassesById(classesId);
+  if (!classes) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Class not found');
+  }
+
+  // Check if student is present in studentsInClass (source of truth)
+  const studentsInClass = (classes.studentsInClass ?? []) as { user: mongoose.Types.ObjectId | any; course: mongoose.Types.ObjectId | any }[];
+  const getId = (val: any) => (val && typeof val === 'object' && val._id ? val._id : val);
+  const studentEntry = studentsInClass.find((s) => {
+    const uid = getId(s.user);
+    return uid && uid.toString() === studentId.toString();
+  });
+
+  if (!studentEntry) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Student is not enrolled in this class');
+  }
+
+  // Get courseId from studentsInClass entry (handle populated object)
+  const courseId = getId(studentEntry.course) || null;
+
+  // Find StudentProgress for this student + class
+  const progressRecord = await StudentProgress.findOne({ studentId, classId: classesId }).lean();
+  const progressId = progressRecord?._id;
+
+  // Remove from User: classes, courses, progress
+  const pullOp: Record<string, unknown> = {
+    classes: classesId,
+  };
+  if (courseId) pullOp['courses'] = courseId;
+  if (progressId) pullOp['progress'] = progressId;
+
+  await User.findByIdAndUpdate(studentId, { $pull: pullOp });
+
+  // Delete StudentProgress record for this student + class
+  await StudentProgress.deleteOne({ studentId, classId: classesId });
+
+  // Delete StudentAttendance for this student + class
+  await StudentAttendance.deleteOne({ studentId, classId: classesId });
+
+  // Remove student from studentsInClass and students arrays on the class
+  const updatedClasses = await Classes.findByIdAndUpdate(
+    classesId,
+    {
+      $pull: {
+        studentsInClass: { user: studentId },
+        students: studentId,
+      },
+    },
+    { new: true }
+  )
+    .populate('teacherId')
+    .populate('courseId')
+    .populate('students');
+
+  return updatedClasses;
+};

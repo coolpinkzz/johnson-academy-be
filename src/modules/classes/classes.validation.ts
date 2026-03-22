@@ -94,3 +94,12 @@ export const addSingleStudentToClass = {
     courseId: Joi.string().custom(objectId).required(),
   }),
 };
+
+export const removeStudentFromClass = {
+  params: Joi.object().keys({
+    classesId: Joi.string().custom(objectId).required(),
+  }),
+  body: Joi.object().keys({
+    studentId: Joi.string().custom(objectId).required(),
+  }),
+};

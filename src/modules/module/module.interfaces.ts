@@ -12,6 +12,7 @@ export interface IModule {
   title: string;
   description: string;
   session: number;
+  seq?: number;
   resources: IModuleResource[];
 }
 

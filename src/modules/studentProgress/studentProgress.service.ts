@@ -93,7 +93,7 @@ export const getStudentProgressById = async (id: mongoose.Types.ObjectId): Promi
     .populate('classId', 'name')
     .populate('courseId', 'name description')
     .populate('syllabusProgress.syllabusId', 'title description')
-    .populate('syllabusProgress.modules.moduleId', 'title description type session resources');
+    .populate('syllabusProgress.modules.moduleId', 'title description type session seq resources');
 
 /**
  * Get student progress by student and class

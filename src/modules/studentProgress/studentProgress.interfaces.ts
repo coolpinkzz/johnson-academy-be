@@ -3,6 +3,7 @@ import { QueryResult } from '../paginate/paginate';
 
 export interface IModuleProgress {
   moduleId: mongoose.Types.ObjectId;
+  seq?: number;
   status: 'completed' | 'inprogress' | 'upcoming';
   score?: number;
   startDate?: Date;

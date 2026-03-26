@@ -45,6 +45,10 @@ const moduleSchema = new mongoose.Schema<IModuleDoc, IModuleModel>(
       type: Number,
       required: true,
     },
+    seq: {
+      type: Number,
+      required: false,
+    },
     resources: [moduleResourceSchema],
   },
   {

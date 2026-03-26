@@ -61,7 +61,9 @@ export const queryModules = async (filter: Record<string, any>, options: Record<
     transformedFilter['title'] = { $regex: transformedFilter['title'], $options: 'i' };
   }
 
-  const modules = await Module.paginate(transformedFilter, options);
+  // Default sort by seq ascending
+  const paginateOptions = { sortBy: 'seq:asc', ...options };
+  const modules = await Module.paginate(transformedFilter, paginateOptions);
   return modules;
 };
 

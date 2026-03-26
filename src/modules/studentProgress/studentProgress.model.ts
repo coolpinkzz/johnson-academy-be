@@ -10,6 +10,10 @@ const moduleProgressSchema = new mongoose.Schema(
       required: true,
       ref: 'Module',
     },
+    seq: {
+      type: Number,
+      required: false,
+    },
     status: {
       type: String,
       enum: ['completed', 'inprogress', 'upcoming'],
@@ -183,7 +187,7 @@ studentProgressSchema.static(
       .populate('classId', 'name')
       .populate('courseId', 'name description')
       .populate('syllabusProgress.syllabusId', 'title description')
-      .populate('syllabusProgress.modules.moduleId', 'title description type session resources');
+      .populate('syllabusProgress.modules.moduleId', 'title description type session seq resources');
   }
 );
 
@@ -198,7 +202,7 @@ studentProgressSchema.static('findByStudent', async function (studentId: mongoos
     .populate('classId', 'name')
     .populate('courseId', 'name description')
     .populate('syllabusProgress.syllabusId', 'title description')
-    .populate('syllabusProgress.modules.moduleId', 'title description type session resources');
+    .populate('syllabusProgress.modules.moduleId', 'title description type session seq resources');
 });
 
 /**
@@ -212,7 +216,7 @@ studentProgressSchema.static('findByClass', async function (classId: mongoose.Ty
     .populate('classId', 'name')
     .populate('courseId', 'name description')
     .populate('syllabusProgress.syllabusId', 'title description')
-    .populate('syllabusProgress.modules.moduleId', 'title description type session resources');
+    .populate('syllabusProgress.modules.moduleId', 'title description type session seq resources');
 });
 
 /**
@@ -226,7 +230,7 @@ studentProgressSchema.static('findByCourse', async function (courseId: mongoose.
     .populate('classId', 'name')
     .populate('courseId', 'name description')
     .populate('syllabusProgress.syllabusId', 'title description')
-    .populate('syllabusProgress.modules.moduleId', 'title description type session resources');
+    .populate('syllabusProgress.modules.moduleId', 'title description type session seq resources');
 });
 
 /**
@@ -272,21 +276,16 @@ studentProgressSchema.static(
     const syllabusProgress = [];
 
     for (const syllabus of syllabi) {
-      // Get modules for this syllabus and extract their IDs
+      // Get modules for this syllabus, sorted by seq (then session, createdAt as fallback)
       const Module = mongoose.model('Module');
-      const modules = await Module.find({ syllabusId: syllabus._id });
+      const modules = await Module.find({ syllabusId: syllabus._id }).sort({ seq: 1, createdAt: 1 });
 
-      const theoryIds = modules.filter((m) => m.type === 'theory').map((m) => m._id);
-      const technicalIds = modules.filter((m) => m.type === 'technical').map((m) => m._id);
-      const learningIds = modules.filter((m) => m.type === 'learning').map((m) => m._id);
-      const othersIds = modules.filter((m) => m.type === 'others').map((m) => m._id);
+      totalModules += modules.length;
 
-      const allModuleIds = [...theoryIds, ...technicalIds, ...learningIds, ...othersIds];
-      totalModules += allModuleIds.length;
-
-      // Create module progress entries for this syllabus
-      const moduleProgress = allModuleIds.map((moduleId) => ({
-        moduleId,
+      // Create module progress entries for this syllabus, preserving seq from each module
+      const moduleProgress = modules.map((module) => ({
+        moduleId: module._id,
+        seq: module.seq,
         status: 'upcoming' as const,
       }));
 

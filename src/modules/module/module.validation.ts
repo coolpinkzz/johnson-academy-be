@@ -13,6 +13,7 @@ const createModuleBody: Record<keyof NewCreatedModule, any> = {
   title: Joi.string().required(),
   description: Joi.string().required(),
   session: Joi.number().integer().min(1).required(),
+  seq: Joi.number().integer().min(1).optional(),
   resources: Joi.array().items(moduleResourceSchema),
 };
 
@@ -53,6 +54,7 @@ export const updateModule = {
       title: Joi.string(),
       description: Joi.string(),
       session: Joi.number().integer().min(1),
+      seq: Joi.number().integer().min(1),
       resources: Joi.array().items(moduleResourceSchema),
     })
     .min(1),

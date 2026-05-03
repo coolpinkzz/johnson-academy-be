@@ -13,6 +13,7 @@ import mrtRoute from './mrt.route';
 import uploadRoute from './upload.route';
 import pdfRoute from './pdf.route';
 import assignmentRoute from './assignment.route';
+import dashboardRoute from './dashboard.route';
 const router = express.Router();
 
 interface IRoute {
@@ -68,6 +69,10 @@ const defaultIRoute: IRoute[] = [
   {
     path: '/pdf',
     route: pdfRoute,
+  },
+  {
+    path: '/dashboard',
+    route: dashboardRoute,
   },
 ];
 

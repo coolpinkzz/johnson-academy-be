@@ -2,6 +2,7 @@ import httpStatus from 'http-status';
 import mongoose from 'mongoose';
 import User from './user.model';
 import Classes from '../classes/classes.model';
+import { resolveClassTeacherIds } from '../classes/classes.util';
 import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedUser, UpdateUserBody, IUserDoc, NewRegisteredUser } from './user.interfaces';
@@ -104,30 +105,28 @@ export const queryUsers = async (filter: Record<string, any>, options: IOptions)
 
   const users = await User.paginate(transformedFilter, queryOptions);
 
-  // If filtering by teacher role, populate classes from Classes model where teacherId matches
+  // If filtering by teacher role, populate classes from Classes model (teachers[] or legacy teacherId)
   if (transformedFilter['role'] === 'teacher' && users.results.length > 0) {
     const teacherIds = users.results.map((user) => user._id);
 
-    // Find all classes where teacherId matches any of the teachers
-    const allClasses = await Classes.find({ teacherId: { $in: teacherIds } })
+    const allClasses = await Classes.find({
+      $or: [{ teachers: { $in: teacherIds } }, { teacherId: { $in: teacherIds } }],
+    })
       .populate('courseId')
       .populate('students');
 
-    // Group classes by teacherId
-    const classesByTeacher = allClasses.reduce((acc: any, cls: any) => {
-      const teacherId = cls.teacherId.toString();
-      if (!acc[teacherId]) {
-        acc[teacherId] = [];
+    const classesByTeacher = allClasses.reduce((acc: Record<string, unknown[]>, cls: any) => {
+      for (const tId of resolveClassTeacherIds(cls)) {
+        const bucket = acc[tId] ?? (acc[tId] = []);
+        bucket.push(cls);
       }
-      acc[teacherId].push(cls);
       return acc;
     }, {});
 
-    // Attach classes to each teacher
     users.results = users.results.map((user: any) => {
       const userObj = user.toObject ? user.toObject() : user;
-      const teacherId = userObj._id.toString();
-      userObj.classes = classesByTeacher[teacherId] || [];
+      const key = userObj._id.toString();
+      userObj.classes = classesByTeacher[key] || [];
       return userObj;
     });
   }
@@ -226,7 +225,8 @@ export const deleteUserById = async (userId: mongoose.Types.ObjectId): Promise<I
       // Remove user from classes where they are a student
       Classes.updateMany({ students: userId }, { $pull: { students: userId } }, { session }),
 
-      // Remove user from classes where they are a teacher
+      // Remove user from classes where they are a teacher (array + legacy field)
+      Classes.updateMany({ teachers: userId }, { $pull: { teachers: userId } }, { session }),
       Classes.updateMany({ teacherId: userId }, { $unset: { teacherId: 1 } }, { session }),
     ]);
 
@@ -237,7 +237,8 @@ export const deleteUserById = async (userId: mongoose.Types.ObjectId): Promise<I
       mrt: deletionResults[2].deletedCount,
       tokens: deletionResults[3].deletedCount,
       classesUpdated: deletionResults[4].modifiedCount,
-      teacherClassesUpdated: deletionResults[5].modifiedCount,
+      teacherClassesPulledFrom: deletionResults[5].modifiedCount,
+      teacherLegacyFieldUnset: deletionResults[6].modifiedCount,
     });
 
     // Finally delete the user

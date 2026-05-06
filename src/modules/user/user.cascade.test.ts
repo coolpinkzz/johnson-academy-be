@@ -22,7 +22,7 @@ export const testCascadeDeletion = async (userId: string) => {
       mrt: await MRT.countDocuments({ studentId: userId }),
       tokens: await Token.countDocuments({ user: userId }),
       classesAsStudent: await Classes.countDocuments({ students: userId }),
-      classesAsTeacher: await Classes.countDocuments({ teacherId: userId }),
+      classesAsTeacher: await Classes.countDocuments({ $or: [{ teachers: userId }, { teacherId: userId }] }),
     };
 
     console.log('Records before deletion:', beforeCounts);
@@ -37,7 +37,7 @@ export const testCascadeDeletion = async (userId: string) => {
       mrt: await MRT.countDocuments({ studentId: userId }),
       tokens: await Token.countDocuments({ user: userId }),
       classesAsStudent: await Classes.countDocuments({ students: userId }),
-      classesAsTeacher: await Classes.countDocuments({ teacherId: userId }),
+      classesAsTeacher: await Classes.countDocuments({ $or: [{ teachers: userId }, { teacherId: userId }] }),
     };
 
     console.log('Records after deletion:', afterCounts);
@@ -102,6 +102,7 @@ export const cleanupTestData = async (userId: string) => {
       MRT.deleteMany({ studentId: userId }),
       Token.deleteMany({ user: userId }),
       Classes.updateMany({ students: userId }, { $pull: { students: userId } }),
+      Classes.updateMany({ teachers: userId }, { $pull: { teachers: userId } }),
       Classes.updateMany({ teacherId: userId }, { $unset: { teacherId: 1 } }),
     ]);
 

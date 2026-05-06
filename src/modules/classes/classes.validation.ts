@@ -1,11 +1,12 @@
 import Joi from 'joi';
 import { objectId } from '../validate/custom.validation';
 
+const teachersJoi = Joi.array().items(Joi.string().custom(objectId));
+
 const createClassesBody = {
   name: Joi.string().required(),
-  teacherId: Joi.string().required(),
-  // courseId: Joi.string().required().optional(),
-  // students: Joi.array().items(Joi.string()).optional(),
+  teachers: teachersJoi,
+  teacherId: Joi.string().custom(objectId),
   studentsInClass: Joi.array()
     .items(
       Joi.object({
@@ -17,12 +18,24 @@ const createClassesBody = {
 };
 
 export const createClasses = {
-  body: Joi.object().keys(createClassesBody),
+  body: Joi.object()
+    .keys(createClassesBody)
+    .custom((value, helpers) => {
+      const hasTeachers = Array.isArray(value.teachers) && value.teachers.length > 0;
+      if (hasTeachers || value.teacherId) {
+        return value;
+      }
+      return helpers.error('any.custom');
+    })
+    .messages({
+      'any.custom': 'Provide teachers (non-empty array) or legacy teacherId',
+    }),
 };
 
 export const getClasses = {
   query: Joi.object().keys({
     teacherId: Joi.string().custom(objectId),
+    teachers: Joi.string().custom(objectId),
     courseId: Joi.string().custom(objectId),
     name: Joi.string(),
     sortBy: Joi.string(),
@@ -63,6 +76,7 @@ export const updateClasses = {
   body: Joi.object()
     .keys({
       name: Joi.string(),
+      teachers: Joi.array().items(Joi.string().custom(objectId)).min(1),
       teacherId: Joi.string().custom(objectId),
       courseId: Joi.string().custom(objectId),
       students: Joi.array().items(Joi.string().custom(objectId)),

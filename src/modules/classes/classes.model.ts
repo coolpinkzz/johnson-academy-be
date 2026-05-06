@@ -10,9 +10,17 @@ const classesSchema = new mongoose.Schema<IClassesDoc, IClassesModel>(
       required: true,
       trim: true,
     },
+    teachers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+      },
+    ],
+    /** @deprecated Remove after migrateClassTeachers + DB cleanup — use `teachers` only */
     teacherId: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      required: false,
       ref: 'User',
     },
     courseId: {
@@ -38,6 +46,11 @@ const classesSchema = new mongoose.Schema<IClassesDoc, IClassesModel>(
     timestamps: true,
   }
 );
+
+classesSchema.path('teachers').validate(function (value: any[]) {
+  // Legacy documents may only have `teacherId` until migration runs
+  return (value && value.length > 0) || !!(this as mongoose.Document & { teacherId?: mongoose.Types.ObjectId }).teacherId;
+}, 'At least one teacher is required');
 
 // add plugin that converts mongoose to json
 classesSchema.plugin(toJSON);

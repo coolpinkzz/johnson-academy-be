@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import Assignment from './assignment.model';
 import User from '../user/user.model';
 import Classes from '../classes/classes.model';
+import { isUserClassTeacher } from '../classes/classes.util';
 import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedAssignment, UpdateAssignmentBody, IAssignmentDoc, UpdateSubmissionBody } from './assignment.interfaces';
@@ -29,7 +30,7 @@ export const createAssignment = async (assignmentBody: NewCreatedAssignment): Pr
   }
 
   // Validate that the teacher is assigned to the class
-  if (classDoc.teacherId.toString() !== assignmentBody.teacherId.toString()) {
+  if (!isUserClassTeacher(classDoc.toObject(), assignmentBody.teacherId.toString())) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Teacher is not assigned to this class');
   }
 

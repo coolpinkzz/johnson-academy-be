@@ -8,7 +8,9 @@ export interface IStudentInClass {
 
 export interface IClasses {
   name: string;
-  teacherId: mongoose.Types.ObjectId;
+  teachers: mongoose.Types.ObjectId[];
+  /** @deprecated Use `teachers`; kept for migration backward compatibility */
+  teacherId?: mongoose.Types.ObjectId;
   courseId: mongoose.Types.ObjectId;
   students: mongoose.Types.ObjectId[];
   studentsInClass?: IStudentInClass[];
@@ -22,4 +24,13 @@ export interface IClassesModel extends Model<IClassesDoc> {
 
 export type UpdateClassesBody = Partial<IClasses>;
 
-export type NewCreatedClasses = Omit<IClasses, '_id'>;
+/** Payload for POST /classes (supports legacy `teacherId`) */
+export type NewCreatedClasses = {
+  name: string;
+  teachers?: mongoose.Types.ObjectId[];
+  /** @deprecated send `teachers` array instead */
+  teacherId?: mongoose.Types.ObjectId;
+  courseId?: mongoose.Types.ObjectId;
+  students?: mongoose.Types.ObjectId[];
+  studentsInClass?: IStudentInClass[];
+};

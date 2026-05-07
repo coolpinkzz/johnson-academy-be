@@ -111,16 +111,19 @@ export default router;
  *             type: object
  *             required:
  *               - name
- *               - teacherId
+ *               - teachers
  *               - courseId
  *             properties:
  *               name:
  *                 type: string
  *                 description: Class name
- *               teacherId:
- *                 type: string
- *                 format: objectId
- *                 description: Teacher ID (must be a user with role 'teacher')
+ *               teachers:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: objectId
+ *                 minItems: 1
+ *                 description: Teacher IDs (each must be a user with role 'teacher')
  *               courseId:
  *                 type: string
  *                 format: objectId
@@ -133,7 +136,7 @@ export default router;
  *                 description: Array of student IDs (must be users with role 'student')
  *             example:
  *               name: "Advanced Mathematics 101"
- *               teacherId: "507f1f77bcf86cd799439011"
+ *               teachers: ["507f1f77bcf86cd799439011"]
  *               courseId: "507f1f77bcf86cd799439012"
  *               students: ["507f1f77bcf86cd799439013", "507f1f77bcf86cd799439014"]
  *     responses:
@@ -403,10 +406,12 @@ export default router;
  *               name:
  *                 type: string
  *                 description: Class name
- *               teacherId:
- *                 type: string
- *                 format: objectId
- *                 description: Teacher ID (must be a user with role 'teacher')
+ *               teachers:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: objectId
+ *                 description: Teacher IDs (must be users with role 'teacher')
  *               courseId:
  *                 type: string
  *                 format: objectId

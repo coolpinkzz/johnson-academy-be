@@ -8,6 +8,7 @@ import StudentAttendance from '../studentAttendance/studentAttendance.model';
 import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedClasses, UpdateClassesBody, IClassesDoc } from './classes.interfaces';
+import { filterClassesByTeacher } from './classes.util';
 
 /**
  * Create a class
@@ -15,16 +16,40 @@ import { NewCreatedClasses, UpdateClassesBody, IClassesDoc } from './classes.int
  * @returns {Promise<IClassesDoc>}
  */
 export const createClasses = async (classesBody: NewCreatedClasses): Promise<IClassesDoc> => {
-  // Validate that the teacher exists and is a teacher
-  //  Error: ""teacherId"" must be a valid mongo id
+  const body = classesBody as NewCreatedClasses & { teacherId?: mongoose.Types.ObjectId };
+  let teacherIds: mongoose.Types.ObjectId[] = [];
+  if (body.teachers && body.teachers.length > 0) {
+    teacherIds = [...body.teachers];
+  } else if (body.teacherId) {
+    teacherIds = [body.teacherId];
+  }
+  const seen = new Set<string>();
+  teacherIds = teacherIds.filter((id) => {
+    const k = id.toString();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 
-  const teacher = await User.findById(classesBody.teacherId);
-  if (!teacher) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Teacher not found');
+  if (teacherIds.length === 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'At least one teacher is required');
   }
-  if (teacher.role !== 'teacher') {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'User must be a teacher to be assigned to a class');
+
+  for (const tid of teacherIds) {
+    const teacher = await User.findById(tid);
+    if (!teacher) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Teacher not found');
+    }
+    if (teacher.role !== 'teacher') {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'User must be a teacher to be assigned to a class');
+    }
   }
+
+  const { teacherId: _omit, teachers: _omitT, ...rest } = body;
+  const createdClass = await Classes.create({
+    ...rest,
+    teachers: teacherIds,
+  });
 
   // Validate that all students exist and are students
   // if (classesBody.students && classesBody.students.length > 0) {
@@ -39,8 +64,6 @@ export const createClasses = async (classesBody: NewCreatedClasses): Promise<ICl
   //     throw new ApiError(httpStatus.NOT_FOUND, `Students not found or not valid students: ${missingStudentIds.join(', ')}`);
   //   }
   // }
-
-  const createdClass = await Classes.create(classesBody);
 
   // Create progress records and attendance records for all students added to the class and update user model
   if (createdClass.students && createdClass.students.length > 0) {
@@ -85,6 +108,17 @@ export const createClasses = async (classesBody: NewCreatedClasses): Promise<ICl
  * @returns {Promise<QueryResult>}
  */
 export const queryClasses = async (filter: Record<string, any>, options: IOptions): Promise<QueryResult> => {
+  const mongoFilter: Record<string, any> = { ...filter };
+  const teacherQueryId = mongoFilter['teacherId'] as string | undefined;
+  const teachersQueryId = mongoFilter['teachers'] as string | undefined;
+  if (teacherQueryId) {
+    delete mongoFilter['teacherId'];
+    Object.assign(mongoFilter, filterClassesByTeacher(new mongoose.Types.ObjectId(teacherQueryId)));
+  } else if (teachersQueryId) {
+    delete mongoFilter['teachers'];
+    Object.assign(mongoFilter, filterClassesByTeacher(new mongoose.Types.ObjectId(teachersQueryId)));
+  }
+
   // Ensure course/students and nested studentsInClass refs are populated (like getClassesByTeacherId)
   const requiredPopulate = ['courseId', 'students', 'studentsInClass.user', 'studentsInClass.course'];
   const existingPopulate = (options.populate || '')
@@ -101,11 +135,10 @@ export const queryClasses = async (filter: Record<string, any>, options: IOption
     options.sortBy = 'createdAt:desc';
   }
 
-  const classes = await Classes.paginate(filter, options);
+  const classes = await Classes.paginate(mongoFilter, options);
 
-  //populate teacherId
   await Classes.populate(classes.results, {
-    path: 'teacherId',
+    path: 'teachers',
   });
   // Ensure nested population for studentsInClass (user & course), mirroring getClassesByTeacherId
   await Classes.populate(classes.results, {
@@ -122,7 +155,7 @@ export const queryClasses = async (filter: Record<string, any>, options: IOption
  * @returns {Promise<IClassesDoc | null>}
  */
 export const getClassesById = async (id: mongoose.Types.ObjectId): Promise<IClassesDoc | null> =>
-  Classes.findById(id).populate('teacherId').populate('courseId').populate('students');
+  Classes.findById(id).populate('teachers').populate('courseId').populate('students');
 
 /**
  * Get classes by teacher id
@@ -130,8 +163,8 @@ export const getClassesById = async (id: mongoose.Types.ObjectId): Promise<IClas
  * @returns {Promise<IClassesDoc[]>}
  */
 export const getClassesByTeacherId = async (teacherId: mongoose.Types.ObjectId): Promise<IClassesDoc[]> =>
-  Classes.find({ teacherId })
-    .populate('teacherId')
+  Classes.find(filterClassesByTeacher(teacherId))
+    .populate('teachers')
     .populate('courseId')
     .populate('students')
     .populate({
@@ -145,7 +178,7 @@ export const getClassesByTeacherId = async (teacherId: mongoose.Types.ObjectId):
  * @returns {Promise<IClassesDoc[]>}
  */
 export const getClassesByCourseId = async (courseId: mongoose.Types.ObjectId): Promise<IClassesDoc[]> =>
-  Classes.find({ courseId }).populate('teacherId').populate('courseId').populate('students');
+  Classes.find({ courseId }).populate('teachers').populate('courseId').populate('students');
 
 /**
  * Get classes by student id
@@ -154,7 +187,7 @@ export const getClassesByCourseId = async (courseId: mongoose.Types.ObjectId): P
  */
 export const getClassesByStudentId = async (studentId: mongoose.Types.ObjectId): Promise<any[]> => {
   const classes = await Classes.find({ students: studentId })
-    .populate('teacherId')
+    .populate('teachers')
     .populate({
       path: 'students',
       match: { _id: studentId },
@@ -209,14 +242,22 @@ export const updateClassesById = async (
     throw new ApiError(httpStatus.NOT_FOUND, 'Class not found');
   }
 
-  // Validate teacherId if it's being updated
-  if (updateBody.teacherId) {
-    const teacher = await User.findById(updateBody.teacherId);
-    if (!teacher) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Teacher not found');
-    }
-    if (teacher.role !== 'teacher') {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'User must be a teacher to be assigned to a class');
+  const patch = { ...updateBody } as UpdateClassesBody & { teacherId?: mongoose.Types.ObjectId };
+  if (patch.teacherId && (!patch.teachers || patch.teachers.length === 0)) {
+    patch.teachers = [patch.teacherId];
+  }
+  delete patch.teacherId;
+
+  // Validate teachers if it's being updated
+  if (patch.teachers && patch.teachers.length > 0) {
+    for (const tid of patch.teachers) {
+      const teacher = await User.findById(tid);
+      if (!teacher) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Teacher not found');
+      }
+      if (teacher.role !== 'teacher') {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'User must be a teacher to be assigned to a class');
+      }
     }
   }
 
@@ -304,7 +345,7 @@ export const updateClassesById = async (
     }
   }
 
-  Object.assign(classes, updateBody);
+  Object.assign(classes, patch);
   await classes.save();
   return classes;
 };
@@ -376,7 +417,7 @@ export const deleteClassesById = async (classesId: mongoose.Types.ObjectId): Pro
  * @returns {Promise<IClassesDoc[]>}
  */
 export const getAllClasses = async (): Promise<IClassesDoc[]> => {
-  return Classes.find().populate('teacherId').populate('courseId').populate('students');
+  return Classes.find().populate('teachers').populate('courseId').populate('students');
 };
 
 /**
@@ -421,7 +462,7 @@ export const bulkAddStudentsToClass = async (
     { $addToSet: { students: { $each: newStudentIds } } },
     { new: true }
   )
-    .populate('teacherId')
+    .populate('teachers')
     .populate('courseId')
     .populate('students');
 
@@ -606,7 +647,7 @@ export const removeStudentFromClass = async (
     },
     { new: true }
   )
-    .populate('teacherId')
+    .populate('teachers')
     .populate('courseId')
     .populate('students');
 

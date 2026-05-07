@@ -38,7 +38,8 @@
     "commit": "git add -A && cz",
     "script:migrate-students-in-class": "node dist/scripts/migrateStudentsInClass.js",
     "script:migrate-module-seq": "node dist/scripts/migrateModuleSeq.js",
-    "script:delete-all-classes": "node dist/scripts/deleteAllClasses.js"
+    "script:delete-all-classes": "node dist/scripts/deleteAllClasses.js",
+    "script:migrate-class-teachers": "node dist/scripts/migrateClassTeachers.js"
   },
   "keywords": [
     "node",

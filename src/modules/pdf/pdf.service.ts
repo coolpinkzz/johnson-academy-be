@@ -191,32 +191,30 @@ export class PDFService {
         });
 
         // Map module titles
-        sessionDetails =
-          activeModules.length > 0
-            ? activeModules.map((m) => (m.moduleId.type === 'theory' ? 'Theory' : m.moduleId.title)).join(', ')
-            : '-';
+        sessionDetails = activeModules.length > 0 ? activeModules.map((m) => m.moduleId.title).join(', ') : '-';
       }
 
-      // Calculate row position and height based on content
       const rowY = doc.y;
-      const rowHeight = 35; // Increased row height to accommodate text
+      const cellPadding = 8;
+      const dateTextWidth = dateColWidth - 20;
+      const sessionTextWidth = sessionColWidth - 20;
 
-      // Draw row border
+      const dateTextHeight = doc.heightOfString(date, { width: dateTextWidth });
+      const sessionTextHeight = doc.heightOfString(sessionDetails, { width: sessionTextWidth });
+      const rowHeight = Math.max(28, Math.max(dateTextHeight, sessionTextHeight) + cellPadding * 2);
+
       doc.rect(tableStartX, rowY, tableEndX - tableStartX, rowHeight).stroke();
 
-      // Draw vertical line between columns
       doc
         .moveTo(tableStartX + dateColWidth, rowY)
         .lineTo(tableStartX + dateColWidth, rowY + rowHeight)
         .stroke();
 
-      // Add date text (centered vertically in row)
-      doc.text(date, tableStartX + 10, rowY + 12, { width: dateColWidth - 20 });
+      doc.text(date, tableStartX + 10, rowY + cellPadding, { width: dateTextWidth });
+      doc.text(sessionDetails, tableStartX + dateColWidth + 10, rowY + cellPadding, {
+        width: sessionTextWidth,
+      });
 
-      // Add session details text (centered vertically in row)
-      doc.text(sessionDetails, tableStartX + dateColWidth + 10, rowY + 9, { width: sessionColWidth - 20 });
-
-      // Move to next row position
       doc.y = rowY + rowHeight;
     });
 

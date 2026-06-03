@@ -3,6 +3,7 @@ import httpStatus from 'http-status';
 import { IModuleDoc, NewCreatedModule, UpdateModuleBody } from './module.interfaces';
 import Module from './module.model';
 import Syllabus from '../syllabus/syllabus.model';
+import { syncNewModulesToStudentProgress } from '../studentProgress/studentProgress.service';
 import ApiError from '../errors/ApiError';
 import { QueryResult } from '../paginate/paginate';
 
@@ -12,8 +13,11 @@ import { QueryResult } from '../paginate/paginate';
  * @returns {Promise<IModuleDoc>}
  */
 export const createModule = async (moduleBody: NewCreatedModule): Promise<IModuleDoc> => {
-  // syllabus is optional
-  return Module.create(moduleBody);
+  const module = await Module.create(moduleBody);
+  if (module.syllabusId) {
+    await syncNewModulesToStudentProgress([module]);
+  }
+  return module;
 };
 
 /**
@@ -38,8 +42,8 @@ export const createModulesBulk = async (moduleBodies: NewCreatedModule[]): Promi
     throw new ApiError(httpStatus.NOT_FOUND, `Syllabi not found: ${missingSyllabusIds.join(', ')}`);
   }
 
-  // Create all modules
   const createdModules = await Module.insertMany(moduleBodies);
+  await syncNewModulesToStudentProgress(createdModules);
   return createdModules;
 };
 

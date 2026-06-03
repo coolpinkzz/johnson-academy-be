@@ -1,15 +1,18 @@
 import httpStatus from 'http-status';
 import mongoose from 'mongoose';
 import StudentProgress from './studentProgress.model';
+import Module from '../module/module.model';
 import User from '../user/user.model';
 import Classes from '../classes/classes.model';
 import Course from '../course/course.model';
+import { IModuleDoc } from '../module/module.interfaces';
 import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import {
   NewCreatedStudentProgress,
   UpdateStudentProgressBody,
   IStudentProgressDoc,
+  IModuleProgress,
   IUpdateModuleProgressBody,
   IStartModuleBody,
   IEndModuleBody,
@@ -69,6 +72,87 @@ export const createProgressForStudent = async (
   courseId: mongoose.Types.ObjectId
 ): Promise<IStudentProgressDoc> => {
   return StudentProgress.createProgressForStudent(studentId, classId, courseId);
+};
+
+/**
+ * Add newly created modules to existing student progress snapshots and recalculate totals.
+ * Matches by syllabusProgress.syllabusId (not syllabus.courseId), because enrolled students
+ * may use a different course document that still references the same syllabus.
+ */
+export const syncNewModulesToStudentProgress = async (modules: IModuleDoc[]): Promise<void> => {
+  const modulesWithSyllabus = modules.filter((m) => m.syllabusId);
+  if (modulesWithSyllabus.length === 0) {
+    return;
+  }
+
+  const modulesBySyllabusId = new Map<string, IModuleDoc[]>();
+  for (const mod of modulesWithSyllabus) {
+    const syllabusKey = mod.syllabusId!.toString();
+    const list = modulesBySyllabusId.get(syllabusKey) ?? [];
+    list.push(mod);
+    modulesBySyllabusId.set(syllabusKey, list);
+  }
+
+  for (const [syllabusIdStr, syllabusModules] of modulesBySyllabusId) {
+    const syllabusObjectId = new mongoose.Types.ObjectId(syllabusIdStr);
+    const progressRecords = await StudentProgress.find({
+      'syllabusProgress.syllabusId': syllabusObjectId,
+    });
+
+    for (const progress of progressRecords) {
+      let modified = false;
+      let syllabusProgress = progress.syllabusProgress.find((sp) => sp.syllabusId.equals(syllabusObjectId));
+
+      if (!syllabusProgress) {
+        const courseIncludesSyllabus = await Course.exists({
+          _id: progress.courseId,
+          syllabus: syllabusObjectId,
+        });
+        if (!courseIncludesSyllabus) {
+          continue;
+        }
+
+        const newSyllabusProgress = {
+          syllabusId: syllabusObjectId,
+          modules: [] as IModuleProgress[],
+        };
+        progress.syllabusProgress.push(newSyllabusProgress);
+        syllabusProgress = newSyllabusProgress;
+        modified = true;
+      }
+
+      for (const mod of syllabusModules) {
+        const alreadyTracked = syllabusProgress.modules.some((mp) => mp.moduleId.equals(mod._id));
+        if (!alreadyTracked) {
+          const moduleProgress: IModuleProgress = {
+            moduleId: mod._id,
+            status: 'upcoming',
+          };
+          if (mod.seq !== undefined) {
+            moduleProgress.seq = mod.seq;
+          }
+          syllabusProgress.modules.push(moduleProgress);
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        progress.totalModules = progress.syllabusProgress.reduce((sum, sp) => sum + sp.modules.length, 0);
+        progress.markModified('syllabusProgress');
+        await progress.calculateProgress();
+      }
+    }
+  }
+};
+
+/**
+ * Backfill all modules for a syllabus into matching student progress records (idempotent).
+ */
+export const syncAllModulesForSyllabusToStudentProgress = async (
+  syllabusId: mongoose.Types.ObjectId
+): Promise<void> => {
+  const modules = await Module.find({ syllabusId }).sort({ seq: 1, createdAt: 1 });
+  await syncNewModulesToStudentProgress(modules);
 };
 
 /**

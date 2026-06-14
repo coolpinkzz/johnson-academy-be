@@ -10,26 +10,30 @@ import { AccessAndRefreshTokens, ITokenDoc } from './token.interfaces';
 import { IUserDoc } from '../user/user.interfaces';
 import { userService } from '../user';
 
+const NEVER_EXPIRES_AT = moment('2099-12-31T23:59:59Z');
+
 /**
  * Generate token
  * @param {mongoose.Types.ObjectId} userId
- * @param {Moment} expires
+ * @param {Moment | null} expires
  * @param {string} type
  * @param {string} [secret]
  * @returns {string}
  */
 export const generateToken = (
   userId: mongoose.Types.ObjectId,
-  expires: Moment,
+  expires: Moment | null,
   type: string,
   secret: string = config.jwt.secret
 ): string => {
-  const payload = {
+  const payload: Record<string, unknown> = {
     sub: userId,
     iat: moment().unix(),
-    exp: expires.unix(),
     type,
   };
+  if (expires) {
+    payload['exp'] = expires.unix();
+  }
   return jwt.sign(payload, secret);
 };
 
@@ -66,7 +70,9 @@ export const saveToken = async (
  * @returns {Promise<ITokenDoc>}
  */
 export const verifyToken = async (token: string, type: string): Promise<ITokenDoc> => {
-  const payload = jwt.verify(token, config.jwt.secret);
+  const payload = jwt.verify(token, config.jwt.secret, {
+    ignoreExpiration: type === tokenTypes.REFRESH,
+  });
   if (typeof payload.sub !== 'string') {
     throw new ApiError(httpStatus.BAD_REQUEST, 'bad user');
   }
@@ -88,21 +94,19 @@ export const verifyToken = async (token: string, type: string): Promise<ITokenDo
  * @returns {Promise<AccessAndRefreshTokens>}
  */
 export const generateAuthTokens = async (user: IUserDoc): Promise<AccessAndRefreshTokens> => {
-  const accessTokenExpires = moment().add(config.jwt.accessExpirationMinutes, 'minutes');
-  const accessToken = generateToken(user.id, accessTokenExpires, tokenTypes.ACCESS);
+  const accessToken = generateToken(user.id, null, tokenTypes.ACCESS);
+  const refreshToken = generateToken(user.id, null, tokenTypes.REFRESH);
+  await saveToken(refreshToken, user.id, NEVER_EXPIRES_AT, tokenTypes.REFRESH);
 
-  const refreshTokenExpires = moment().add(config.jwt.refreshExpirationDays, 'days');
-  const refreshToken = generateToken(user.id, refreshTokenExpires, tokenTypes.REFRESH);
-  await saveToken(refreshToken, user.id, refreshTokenExpires, tokenTypes.REFRESH);
-
+  const neverExpires = NEVER_EXPIRES_AT.toDate();
   return {
     access: {
       token: accessToken,
-      expires: accessTokenExpires.toDate(),
+      expires: neverExpires,
     },
     refresh: {
       token: refreshToken,
-      expires: refreshTokenExpires.toDate(),
+      expires: neverExpires,
     },
   };
 };

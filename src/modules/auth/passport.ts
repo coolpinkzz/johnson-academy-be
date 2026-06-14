@@ -8,6 +8,7 @@ const jwtStrategy = new JwtStrategy(
   {
     secretOrKey: config.jwt.secret,
     jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+    ignoreExpiration: true,
   },
   async (payload: IPayload, done) => {
     try {

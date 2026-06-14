@@ -18,7 +18,7 @@ export interface ITokenModel extends Model<ITokenDoc> {}
 export interface IPayload extends JwtPayload {
   sub: string;
   iat: number;
-  exp: number;
+  exp?: number;
   type: string;
 }
 

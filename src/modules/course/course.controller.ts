@@ -12,13 +12,13 @@ export const createCourse = catchAsync(async (req: Request, res: Response) => {
   if (req.user && req.user.role !== 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can create courses');
   }
-  
+
   const course = await courseService.createCourse(req.body);
   res.status(httpStatus.CREATED).send(course);
 });
 
 export const getCourses = catchAsync(async (req: Request, res: Response) => {
-  const filter = pick(req.query, ['name']);
+  const filter = pick(req.query, ['name', 'instrument']);
   const options: IOptions = pick(req.query, ['sortBy', 'limit', 'page', 'projectBy']);
   const result = await courseService.queryCourses(filter, options);
   res.send(result);
@@ -39,7 +39,7 @@ export const updateCourse = catchAsync(async (req: Request, res: Response) => {
   if (req.user && req.user.role !== 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can update courses');
   }
-  
+
   if (typeof req.params['courseId'] === 'string') {
     const course = await courseService.updateCourseById(new mongoose.Types.ObjectId(req.params['courseId']), req.body);
     res.send(course);
@@ -51,14 +51,12 @@ export const deleteCourse = catchAsync(async (req: Request, res: Response) => {
   if (req.user && req.user.role !== 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can delete courses');
   }
-  
+
   if (typeof req.params['courseId'] === 'string') {
     await courseService.deleteCourseById(new mongoose.Types.ObjectId(req.params['courseId']));
     res.status(httpStatus.NO_CONTENT).send();
   }
 });
-
-
 
 // export const getAllCoursesWithSyllabus = catchAsync(async (req: Request, res: Response) => {
 //   const courses = await courseService.getAllCoursesWithSyllabus();
@@ -70,7 +68,7 @@ export const addSyllabusToCourse = catchAsync(async (req: Request, res: Response
   if (req.user && req.user.role !== 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can add syllabus to courses');
   }
-  
+
   const { courseId, syllabusId } = req.params;
   if (typeof courseId === 'string' && typeof syllabusId === 'string') {
     const course = await courseService.addSyllabusToCourse(
@@ -86,7 +84,7 @@ export const removeSyllabusFromCourse = catchAsync(async (req: Request, res: Res
   if (req.user && req.user.role !== 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can remove syllabus from courses');
   }
-  
+
   const { courseId, syllabusId } = req.params;
   if (typeof courseId === 'string' && typeof syllabusId === 'string') {
     const course = await courseService.removeSyllabusFromCourse(

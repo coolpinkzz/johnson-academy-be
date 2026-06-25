@@ -38,13 +38,23 @@ export interface IStudentProgressModel extends Model<IStudentProgressDoc> {
     studentId: mongoose.Types.ObjectId,
     classId: mongoose.Types.ObjectId
   ): Promise<IStudentProgressDoc | null>;
+  findAllByStudentAndClass(
+    studentId: mongoose.Types.ObjectId,
+    classId: mongoose.Types.ObjectId
+  ): Promise<IStudentProgressDoc[]>;
+  findByStudentClassAndCourse(
+    studentId: mongoose.Types.ObjectId,
+    classId: mongoose.Types.ObjectId,
+    courseId: mongoose.Types.ObjectId
+  ): Promise<IStudentProgressDoc | null>;
   findByStudent(studentId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc[]>;
   findByClass(classId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc[]>;
   findByCourse(courseId: mongoose.Types.ObjectId): Promise<IStudentProgressDoc[]>;
   createProgressForStudent(
     studentId: mongoose.Types.ObjectId,
     classId: mongoose.Types.ObjectId,
-    courseId: mongoose.Types.ObjectId
+    courseId: mongoose.Types.ObjectId,
+    session?: mongoose.ClientSession
   ): Promise<IStudentProgressDoc>;
   paginate(filter: Record<string, any>, options: Record<string, any>): Promise<QueryResult>;
 }

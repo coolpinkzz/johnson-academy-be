@@ -136,6 +136,9 @@ export const getStudentProgressByStudentAndClass = {
     studentId: Joi.string().custom(objectId).required(),
     classId: Joi.string().custom(objectId).required(),
   }),
+  query: Joi.object().keys({
+    courseId: Joi.string().custom(objectId).optional(),
+  }),
 };
 
 export const getClassProgressStatistics = {

@@ -101,8 +101,8 @@ const studentProgressSchema = new mongoose.Schema<IStudentProgressDoc, IStudentP
   }
 );
 
-// Create compound index for unique student-class combination
-studentProgressSchema.index({ studentId: 1, classId: 1 }, { unique: true });
+// One progress record per student + class + course (supports multiple courses per class)
+studentProgressSchema.index({ studentId: 1, classId: 1, courseId: 1 }, { unique: true });
 
 // add plugin that converts mongoose to json
 studentProgressSchema.plugin(toJSON);
@@ -173,8 +173,46 @@ studentProgressSchema.methods['updateModuleStatus'] = async function (
   await this['calculateProgress']();
 };
 
+const progressPopulateOptions = [
+  { path: 'studentId', select: 'name email role' },
+  { path: 'classId', select: 'name' },
+  { path: 'courseId', select: 'name description' },
+  { path: 'syllabusProgress.syllabusId', select: 'title description' },
+  {
+    path: 'syllabusProgress.modules.moduleId',
+    select: 'title description type session seq resources',
+  },
+];
+
 /**
- * Find progress by student and class
+ * Find all progress records for a student in a class (multiple courses)
+ */
+studentProgressSchema.static(
+  'findAllByStudentAndClass',
+  async function (
+    studentId: mongoose.Types.ObjectId,
+    classId: mongoose.Types.ObjectId
+  ): Promise<IStudentProgressDoc[]> {
+    return this['find']({ studentId, classId }).populate(progressPopulateOptions);
+  }
+);
+
+/**
+ * Find progress by student, class, and course
+ */
+studentProgressSchema.static(
+  'findByStudentClassAndCourse',
+  async function (
+    studentId: mongoose.Types.ObjectId,
+    classId: mongoose.Types.ObjectId,
+    courseId: mongoose.Types.ObjectId
+  ): Promise<IStudentProgressDoc | null> {
+    return this['findOne']({ studentId, classId, courseId }).populate(progressPopulateOptions);
+  }
+);
+
+/**
+ * Find progress by student and class (returns first match — prefer findAllByStudentAndClass or findByStudentClassAndCourse)
  */
 studentProgressSchema.static(
   'findByStudentAndClass',
@@ -182,12 +220,7 @@ studentProgressSchema.static(
     studentId: mongoose.Types.ObjectId,
     classId: mongoose.Types.ObjectId
   ): Promise<IStudentProgressDoc | null> {
-    return this['findOne']({ studentId, classId })
-      .populate('studentId', 'name email role')
-      .populate('classId', 'name')
-      .populate('courseId', 'name description')
-      .populate('syllabusProgress.syllabusId', 'title description')
-      .populate('syllabusProgress.modules.moduleId', 'title description type session seq resources');
+    return this['findOne']({ studentId, classId }).populate(progressPopulateOptions);
   }
 );
 
@@ -241,7 +274,8 @@ studentProgressSchema.static(
   async function (
     studentId: mongoose.Types.ObjectId,
     classId: mongoose.Types.ObjectId,
-    courseId: mongoose.Types.ObjectId | any
+    courseId: mongoose.Types.ObjectId | any,
+    session?: mongoose.ClientSession
   ): Promise<IStudentProgressDoc> {
     // Import required models
     const Course = mongoose.model('Course');
@@ -308,7 +342,8 @@ studentProgressSchema.static(
       upcomingModules: totalModules,
     };
 
-    return this['create'](progressData);
+    const createOptions = session ? { session } : {};
+    return this['create']([progressData], createOptions).then((docs: IStudentProgressDoc[]) => docs[0]!);
   }
 );
 

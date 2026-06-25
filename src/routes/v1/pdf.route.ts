@@ -8,7 +8,7 @@ const router = Router();
  * @desc    Generate attendance PDF with sample data
  * @query   {string} studentId - Student ID
  * @query   {string} classId - Class ID
- * @query   {string} month - Month (e.g., "2025-08")
+ * @query   {string} courseId - Course ID (required when student has multiple courses in the class)
  * @access  Public
  */
 router.get('/attendance', PDFController.generateAttendancePDF);

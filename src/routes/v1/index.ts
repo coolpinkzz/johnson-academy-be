@@ -14,6 +14,7 @@ import uploadRoute from './upload.route';
 import pdfRoute from './pdf.route';
 import assignmentRoute from './assignment.route';
 import dashboardRoute from './dashboard.route';
+import appVersionRoute from './appVersion.route';
 const router = express.Router();
 
 interface IRoute {
@@ -73,6 +74,10 @@ const defaultIRoute: IRoute[] = [
   {
     path: '/dashboard',
     route: dashboardRoute,
+  },
+  {
+    path: '/app-version',
+    route: appVersionRoute,
   },
 ];
 

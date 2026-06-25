@@ -109,11 +109,29 @@ export const addSingleStudentToClass = {
   }),
 };
 
+export const getStudentPromotionsInClass = {
+  params: Joi.object().keys({
+    classesId: Joi.string().custom(objectId).required(),
+    studentId: Joi.string().custom(objectId).required(),
+  }),
+};
+
+export const promoteStudentInClass = {
+  params: Joi.object().keys({
+    classesId: Joi.string().custom(objectId).required(),
+  }),
+  body: Joi.object().keys({
+    studentId: Joi.string().custom(objectId).required(),
+    courseId: Joi.string().custom(objectId).required().description('Current course the student is enrolled in'),
+  }),
+};
+
 export const removeStudentFromClass = {
   params: Joi.object().keys({
     classesId: Joi.string().custom(objectId).required(),
   }),
   body: Joi.object().keys({
     studentId: Joi.string().custom(objectId).required(),
+    courseId: Joi.string().custom(objectId).required(),
   }),
 };

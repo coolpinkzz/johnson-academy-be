@@ -3,12 +3,25 @@ import mongoose from 'mongoose';
 import Classes from './classes.model';
 import User from '../user/user.model';
 import Course from '../course/course.model';
+import { findNextLevelCourse } from '../course/course.service';
 import StudentProgress from '../studentProgress/studentProgress.model';
 import StudentAttendance from '../studentAttendance/studentAttendance.model';
 import ApiError from '../errors/ApiError';
+import {
+  createStudentPromotion,
+  getPromotionByStudentClassAndCourse,
+  getPromotionsByStudentAndClass,
+} from '../studentPromotion/studentPromotion.service';
+import { IStudentProgressDoc } from '../studentProgress/studentProgress.interfaces';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedClasses, UpdateClassesBody, IClassesDoc } from './classes.interfaces';
 import { filterClassesByTeacher } from './classes.util';
+
+const getObjectId = (val: mongoose.Types.ObjectId | { _id?: mongoose.Types.ObjectId } | null | undefined) => {
+  if (!val) return null;
+  if (typeof val === 'object' && '_id' in val && val._id) return val._id;
+  return val as mongoose.Types.ObjectId;
+};
 
 /**
  * Create a class
@@ -193,26 +206,46 @@ export const getClassesByStudentId = async (studentId: mongoose.Types.ObjectId):
       match: { _id: studentId },
     });
 
-  // Collect unique course IDs from studentsInClass for this student
-  const courseIds = [...new Set(classes.map((cls) => cls.studentsInClass?.find((s) => s.user?.toString() === studentId.toString())?.course).filter(Boolean))] as mongoose.Types.ObjectId[];
+  // Collect all course IDs from studentsInClass for this student
+  const courseIds = [
+    ...new Set(
+      classes.flatMap((cls) =>
+        (cls.studentsInClass ?? [])
+          .filter((s) => s.user?.toString() === studentId.toString())
+          .map((s) => s.course)
+          .filter(Boolean)
+      )
+    ),
+  ] as mongoose.Types.ObjectId[];
 
   // Batch fetch courses for studentsInClass
   const courses = courseIds.length > 0 ? await Course.find({ _id: { $in: courseIds } }).lean() : [];
   const courseMap = new Map(courses.map((c: any) => [c._id.toString(), c]));
 
-  // Transform the result: use course from studentsInClass for courseId, students as single object
+  // Transform the result: expose all courses for the student in each class
   return classes.map((cls) => {
     const transformedClass = cls.toObject({
-      virtuals: true, // This preserves virtual fields like 'id'
-      versionKey: false, // This removes the __v field
+      virtuals: true,
+      versionKey: false,
     }) as any;
 
-    // Set courseId from student's studentsInClass entry (populated course)
-    const studentEntry = cls.studentsInClass?.find((s) => s.user?.toString() === studentId.toString());
-    const courseIdFromStudent = studentEntry?.course;
-    transformedClass.courseId = courseIdFromStudent ? courseMap.get(courseIdFromStudent.toString()) ?? courseIdFromStudent : null;
+    const studentEntries = (cls.studentsInClass ?? []).filter(
+      (s) => s.user?.toString() === studentId.toString()
+    );
 
-    // Remove studentsInClass from response
+    const studentCourses = studentEntries
+      .map((entry) => {
+        const courseRef = entry.course;
+        const courseIdStr = courseRef?.toString?.() ?? String(courseRef);
+        return courseMap.get(courseIdStr) ?? courseRef;
+      })
+      .filter(Boolean);
+
+    transformedClass.courses = studentCourses;
+    // Backward compatibility: courseId is the most recently added course (last entry)
+    transformedClass.courseId =
+      studentCourses.length > 0 ? studentCourses[studentCourses.length - 1] : null;
+
     delete transformedClass.studentsInClass;
 
     if (transformedClass.students && Array.isArray(transformedClass.students) && transformedClass.students.length > 0) {
@@ -553,11 +586,24 @@ export const addSingleStudentToClass = async (
     throw new ApiError(httpStatus.NOT_FOUND, 'Course not found');
   }
 
-  // Check if the student is already in the class
-  const existingStudent = classes.studentsInClass?.find((student) => student.user.toString() === studentId.toString());
-  if (existingStudent) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Student is already in the class');
+  // Check if the student is already enrolled in this course in the class
+  const existingEnrollment = classes.studentsInClass?.find(
+    (entry) =>
+      entry.user.toString() === studentId.toString() && entry.course.toString() === courseId.toString()
+  );
+  if (existingEnrollment) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Student is already enrolled in this course in the class');
   }
+
+  const existingProgress = await StudentProgress.findOne({ studentId, classId: classesId, courseId });
+  if (existingProgress) {
+    throw new ApiError(httpStatus.CONFLICT, 'Progress record already exists for this student, class, and course');
+  }
+
+  const isNewToClass = !(classes.students ?? []).some((s) => {
+    const sid = getObjectId(s as mongoose.Types.ObjectId);
+    return sid?.toString() === studentId.toString();
+  });
 
   // Add the student to the class also add to students array
   const updatedClasses = await Classes.findByIdAndUpdate(
@@ -565,34 +611,313 @@ export const addSingleStudentToClass = async (
     { $addToSet: { studentsInClass: { user: studentId, course: courseId }, students: studentId } },
     { new: true }
   );
-  // Create progress records and attendance records for single student added to the class and update user model
 
   const progress = await StudentProgress.createProgressForStudent(studentId, classesId, courseId);
 
-  const attendance = await StudentAttendance.create({
-    studentId: new mongoose.Types.ObjectId(studentId),
-    classId: classesId,
-    joiningDate: new Date(),
-  });
+  let attendance = await StudentAttendance.findOne({ studentId, classId: classesId });
+  if (!attendance) {
+    attendance = await StudentAttendance.create({
+      studentId: new mongoose.Types.ObjectId(studentId),
+      classId: classesId,
+      joiningDate: new Date(),
+    });
+  }
 
-  await User.findByIdAndUpdate(studentId, {
-    $addToSet: { classes: classesId, courses: courseId, progress: progress._id },
-  });
+  if (isNewToClass) {
+    await User.findByIdAndUpdate(studentId, {
+      $addToSet: { classes: classesId, courses: courseId, progress: progress._id },
+    });
+  } else {
+    await User.findByIdAndUpdate(studentId, {
+      $addToSet: { courses: courseId, progress: progress._id },
+    });
+  }
 
   return { updatedClasses, progress, attendance };
 };
 
 /**
- * Remove a student from a class.
- * Checks studentsInClass for presence. Cleans up:
- * - Class: removes from studentsInClass and students arrays
- * - User: removes class, course, and progress refs
- * - StudentProgress: deletes the progress record for this student+class
- * - StudentAttendance: deletes the attendance record
- * @param {mongoose.Types.ObjectId} classesId
- * @param {mongoose.Types.ObjectId} studentId
- * @returns {Promise<IClassesDoc | null>}
+ * Backfill studentsInClass entries from existing StudentProgress records for a student.
  */
+const ensureStudentsInClassFromProgress = async (
+  classesId: mongoose.Types.ObjectId,
+  studentId: mongoose.Types.ObjectId,
+  session: mongoose.ClientSession
+): Promise<void> => {
+  const progressRecords = await StudentProgress.find({ studentId, classId: classesId }).session(session).lean();
+
+  for (const progress of progressRecords) {
+    const courseId = getObjectId(progress.courseId as mongoose.Types.ObjectId);
+    if (!courseId) continue;
+
+    const exists = await Classes.exists({
+      _id: classesId,
+      studentsInClass: { $elemMatch: { user: studentId, course: courseId } },
+    }).session(session);
+
+    if (!exists) {
+      await Classes.updateOne(
+        { _id: classesId },
+        { $push: { studentsInClass: { user: studentId, course: courseId } } },
+        { session }
+      );
+    }
+  }
+};
+
+/**
+ * Promote a student to the next course within the same class.
+ * Resolves the target course from the current course's instrument and level (level + 1).
+ * Preserves existing course enrollment and progress; adds a new course assignment.
+ */
+export const promoteStudentInClass = async (
+  classesId: mongoose.Types.ObjectId,
+  studentId: mongoose.Types.ObjectId,
+  currentCourseId: mongoose.Types.ObjectId,
+  promotedBy?: mongoose.Types.ObjectId
+): Promise<{
+  promotion: Awaited<ReturnType<typeof createStudentPromotion>> | null;
+  progress: IStudentProgressDoc;
+  previousProgress: IStudentProgressDoc[];
+  alreadyPromoted: boolean;
+  currentCourseId: mongoose.Types.ObjectId;
+  targetCourseId: mongoose.Types.ObjectId;
+}> => {
+  const classes = await getClassesById(classesId);
+  if (!classes) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Class not found');
+  }
+
+  const student = await User.findById(studentId);
+  if (!student) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Student not found');
+  }
+  if (student.role !== 'student') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'User must be a student');
+  }
+  if (!student.isActive) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Student is not active');
+  }
+
+  const isInClass =
+    (classes.students ?? []).some((s) => getObjectId(s as mongoose.Types.ObjectId)?.toString() === studentId.toString()) ||
+    (classes.studentsInClass ?? []).some((entry) => entry.user.toString() === studentId.toString());
+
+  if (!isInClass) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Student is not enrolled in this class');
+  }
+
+  const currentCourse = await Course.findById(currentCourseId);
+  if (!currentCourse) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Current course not found');
+  }
+
+  const enrolledInCurrentCourse =
+    (await StudentProgress.findByStudentClassAndCourse(studentId, classesId, currentCourseId)) !== null ||
+    (classes.studentsInClass ?? []).some(
+      (entry) =>
+        entry.user.toString() === studentId.toString() && entry.course.toString() === currentCourseId.toString()
+    );
+
+  if (!enrolledInCurrentCourse) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Student is not enrolled in the specified course in this class');
+  }
+
+  const targetCourse = await findNextLevelCourse(currentCourseId);
+  const targetCourseId = targetCourse._id;
+
+  if (targetCourseId.equals(currentCourseId)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Student is already at the highest available course level');
+  }
+
+  const existingProgressForTarget = await StudentProgress.findByStudentClassAndCourse(
+    studentId,
+    classesId,
+    targetCourseId
+  );
+  if (existingProgressForTarget) {
+    const existingPromotion = await getPromotionByStudentClassAndCourse(studentId, classesId, targetCourseId);
+    const allProgress = await StudentProgress.findAllByStudentAndClass(studentId, classesId);
+    return {
+      promotion: existingPromotion,
+      progress: existingProgressForTarget,
+      previousProgress: allProgress.filter((p) => !p.courseId.equals(targetCourseId)),
+      alreadyPromoted: true,
+      currentCourseId,
+      targetCourseId,
+    };
+  }
+
+  const previousProgress = await StudentProgress.findAllByStudentAndClass(studentId, classesId);
+  if (previousProgress.length === 0) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Student has no existing course enrollment in this class. Use add-student to enroll first.'
+    );
+  }
+
+  const alreadyInStudentsInClass = (classes.studentsInClass ?? []).some(
+    (entry) =>
+      entry.user.toString() === studentId.toString() && entry.course.toString() === targetCourseId.toString()
+  );
+  if (alreadyInStudentsInClass) {
+    throw new ApiError(httpStatus.CONFLICT, 'Student is already assigned to the next level course in the class');
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    await ensureStudentsInClassFromProgress(classesId, studentId, session);
+
+    await Classes.findByIdAndUpdate(
+      classesId,
+      { $push: { studentsInClass: { user: studentId, course: targetCourseId } } },
+      { session }
+    );
+
+    const progress = await StudentProgress.createProgressForStudent(studentId, classesId, targetCourseId, session);
+
+    await User.findByIdAndUpdate(
+      studentId,
+      { $addToSet: { courses: targetCourseId, progress: progress._id } },
+      { session }
+    );
+
+    const promotion = await createStudentPromotion(
+      {
+        studentId,
+        classId: classesId,
+        targetCourseId,
+        ...(promotedBy ? { promotedBy } : {}),
+      },
+      session
+    );
+
+    await session.commitTransaction();
+
+    return {
+      promotion,
+      progress,
+      previousProgress,
+      alreadyPromoted: false,
+      currentCourseId,
+      targetCourseId,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+
+/**
+ * Get promotion history for a student in a class.
+ */
+export const getStudentPromotionsInClass = async (
+  classesId: mongoose.Types.ObjectId,
+  studentId: mongoose.Types.ObjectId
+) => {
+  const classes = await getClassesById(classesId);
+  if (!classes) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Class not found');
+  }
+
+  return getPromotionsByStudentAndClass(studentId, classesId);
+};
+
+/**
+ * Remove a student's enrollment in a specific course within a class.
+ * If it is their last course in the class, also removes class membership and attendance.
+ */
+export const removeStudentCourseFromClass = async (
+  classesId: mongoose.Types.ObjectId,
+  studentId: mongoose.Types.ObjectId,
+  courseId: mongoose.Types.ObjectId
+): Promise<IClassesDoc | null> => {
+  const classes = await getClassesById(classesId);
+  if (!classes) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Class not found');
+  }
+
+  const student = await User.findById(studentId);
+  if (!student) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Student not found');
+  }
+
+  const progressRecord = await StudentProgress.findOne({ studentId, classId: classesId, courseId }).lean();
+
+  const studentsInClass = (classes.studentsInClass ?? []) as {
+    user: mongoose.Types.ObjectId | { _id?: mongoose.Types.ObjectId };
+    course: mongoose.Types.ObjectId | { _id?: mongoose.Types.ObjectId };
+  }[];
+  const hasCourseInClass = studentsInClass.some((entry) => {
+    const uid = getObjectId(entry.user as mongoose.Types.ObjectId);
+    const cid = getObjectId(entry.course as mongoose.Types.ObjectId);
+    return uid?.toString() === studentId.toString() && cid?.toString() === courseId.toString();
+  });
+
+  if (!progressRecord && !hasCourseInClass) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Student is not enrolled in this course in the class');
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    await Classes.findByIdAndUpdate(
+      classesId,
+      { $pull: { studentsInClass: { user: studentId, course: courseId } } },
+      { session }
+    );
+
+    if (progressRecord) {
+      await StudentProgress.deleteOne({ _id: progressRecord._id }, { session });
+      await User.findByIdAndUpdate(
+        studentId,
+        { $pull: { courses: courseId, progress: progressRecord._id } },
+        { session }
+      );
+    } else {
+      await User.findByIdAndUpdate(studentId, { $pull: { courses: courseId } }, { session });
+    }
+
+    const remainingProgressCount = await StudentProgress.countDocuments(
+      { studentId, classId: classesId },
+      { session }
+    );
+
+    const classDoc = await Classes.findById(classesId).session(session).lean();
+    const remainingInStudentsInClass = (classDoc?.studentsInClass ?? []).filter((entry) => {
+      const uid = getObjectId(entry.user as mongoose.Types.ObjectId);
+      return uid?.toString() === studentId.toString();
+    }).length;
+
+    const hasRemainingCourses = remainingProgressCount > 0 || remainingInStudentsInClass > 0;
+
+    if (!hasRemainingCourses) {
+      await Classes.findByIdAndUpdate(
+        classesId,
+        { $pull: { students: studentId, studentsInClass: { user: studentId } } },
+        { session }
+      );
+      await User.findByIdAndUpdate(studentId, { $pull: { classes: classesId } }, { session });
+      await StudentAttendance.deleteOne({ studentId, classId: classesId }, { session });
+    }
+
+    await session.commitTransaction();
+
+    return Classes.findById(classesId).populate('teachers').populate('courseId').populate('students');
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+
+/** @deprecated Use removeStudentCourseFromClass — removes all courses for a student in a class */
 export const removeStudentFromClass = async (
   classesId: mongoose.Types.ObjectId,
   studentId: mongoose.Types.ObjectId
@@ -603,35 +928,46 @@ export const removeStudentFromClass = async (
   }
 
   // Check if student is present in studentsInClass (source of truth)
-  const studentsInClass = (classes.studentsInClass ?? []) as { user: mongoose.Types.ObjectId | any; course: mongoose.Types.ObjectId | any }[];
-  const getId = (val: any) => (val && typeof val === 'object' && val._id ? val._id : val);
-  const studentEntry = studentsInClass.find((s) => {
-    const uid = getId(s.user);
+  const studentsInClass = (classes.studentsInClass ?? []) as {
+    user: mongoose.Types.ObjectId | { _id?: mongoose.Types.ObjectId };
+    course: mongoose.Types.ObjectId | { _id?: mongoose.Types.ObjectId };
+  }[];
+  const studentEntries = studentsInClass.filter((s) => {
+    const uid = getObjectId(s.user as mongoose.Types.ObjectId);
     return uid && uid.toString() === studentId.toString();
   });
 
-  if (!studentEntry) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Student is not enrolled in this class');
+  if (studentEntries.length === 0) {
+    const inStudentsArray = (classes.students ?? []).some((id) => id.toString() === studentId.toString());
+    if (!inStudentsArray) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Student is not enrolled in this class');
+    }
   }
 
-  // Get courseId from studentsInClass entry (handle populated object)
-  const courseId = getId(studentEntry.course) || null;
+  const progressRecords = await StudentProgress.find({ studentId, classId: classesId }).lean();
 
-  // Find StudentProgress for this student + class
-  const progressRecord = await StudentProgress.findOne({ studentId, classId: classesId }).lean();
-  const progressId = progressRecord?._id;
+  if (progressRecords.length > 0) {
+    for (const progressRecord of progressRecords) {
+      const progressCourseId = getObjectId(progressRecord.courseId as mongoose.Types.ObjectId);
+      const pullOp: Record<string, unknown> = {
+        progress: progressRecord._id,
+      };
+      if (progressCourseId) pullOp['courses'] = progressCourseId;
 
-  // Remove from User: classes, courses, progress
-  const pullOp: Record<string, unknown> = {
-    classes: classesId,
-  };
-  if (courseId) pullOp['courses'] = courseId;
-  if (progressId) pullOp['progress'] = progressId;
+      await User.findByIdAndUpdate(studentId, { $pull: pullOp });
+    }
+  } else if (studentEntries.length > 0) {
+    for (const entry of studentEntries) {
+      const courseId = getObjectId(entry.course as mongoose.Types.ObjectId);
+      if (courseId) {
+        await User.findByIdAndUpdate(studentId, { $pull: { courses: courseId } });
+      }
+    }
+  }
 
-  await User.findByIdAndUpdate(studentId, { $pull: pullOp });
+  await User.findByIdAndUpdate(studentId, { $pull: { classes: classesId } });
 
-  // Delete StudentProgress record for this student + class
-  await StudentProgress.deleteOne({ studentId, classId: classesId });
+  await StudentProgress.deleteMany({ studentId, classId: classesId });
 
   // Delete StudentAttendance for this student + class
   await StudentAttendance.deleteOne({ studentId, classId: classesId });

@@ -7,6 +7,7 @@ export interface ICourse {
   image?: string;
   syllabus?: mongoose.Types.ObjectId[];
   instrument: string;
+  level: number;
 }
 
 export interface ICourseDoc extends ICourse, Document {}

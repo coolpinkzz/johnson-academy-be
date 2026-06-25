@@ -3,7 +3,7 @@ import { PDFService, AttendanceData } from './pdf.service';
 import mongoose from 'mongoose';
 import { getStudentAttendanceByStudentAndClass } from '../studentAttendance/studentAttendance.service';
 import { filterAttendanceByMonth, isValidMonthFormat } from './pdf.utils';
-import { getStudentProgressByStudentAndClass } from '../studentProgress/studentProgress.service';
+import { getStudentProgressByStudentClassAndCourse } from '../studentProgress/studentProgress.service';
 import { getMRTByStudentClassMonth } from '../mrt/mrt.service';
 import moment from 'moment';
 
@@ -13,12 +13,12 @@ export class PDFController {
    */
   static async generateAttendancePDF(req: Request, res: Response): Promise<void> {
     try {
-      const { studentId, classId, month } = req.query;
+      const { studentId, classId, month, courseId } = req.query;
 
       // Validate required query parameters
-      if (!studentId || !classId || !month) {
+      if (!studentId || !classId || !month || !courseId) {
         res.status(400).json({
-          error: 'Missing required query parameters: studentId, classId, and month',
+          error: 'Missing required query parameters: studentId, classId, courseId, and month',
         });
         return;
       }
@@ -48,7 +48,11 @@ export class PDFController {
       const filteredAttendance = filterAttendanceByMonth(attendance, month as string);
 
       // use getStudentProgressByStudentAndClass to get syllabus modules
-      const studentProgress = await getStudentProgressByStudentAndClass(attendance.studentId, attendance.classId);
+      const studentProgress = await getStudentProgressByStudentClassAndCourse(
+        attendance.studentId,
+        attendance.classId,
+        new mongoose.Types.ObjectId(courseId as string)
+      );
       if (!studentProgress) {
         res.status(400).json({
           error: 'Student progress not found',

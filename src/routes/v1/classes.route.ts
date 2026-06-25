@@ -73,8 +73,20 @@ router.route('/:classesId/add-student').patch(
   classesController.addSingleStudentToClass
 );
 
+router.route('/:classesId/students/:studentId/promotions').get(
+  authMiddleware('getClasses'),
+  validate(classesValidation.getStudentPromotionsInClass),
+  classesController.getStudentPromotionsInClass
+);
+
+router.route('/:classesId/promote-student').post(
+  authMiddleware('promoteStudents'),
+  validate(classesValidation.promoteStudentInClass),
+  classesController.promoteStudentInClass
+);
+
 router.route('/:classesId/remove-student').patch(
-  authMiddleware('manageClasses'), // Only admins can remove students from classes
+  authMiddleware('manageClasses'), // Only admins can remove a student's course enrollment from a class
   validate(classesValidation.removeStudentFromClass),
   classesController.removeStudentFromClass
 );

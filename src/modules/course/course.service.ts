@@ -6,6 +6,46 @@ import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedCourse, UpdateCourseBody, ICourseDoc } from './course.interfaces';
 
 /**
+ * Find the next-level course for promotion (same instrument, level + 1).
+ * @param {mongoose.Types.ObjectId} currentCourseId
+ * @returns {Promise<ICourseDoc>}
+ */
+export const findNextLevelCourse = async (currentCourseId: mongoose.Types.ObjectId): Promise<ICourseDoc> => {
+  const currentCourse = await Course.findById(currentCourseId);
+  if (!currentCourse) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Current course not found');
+  }
+
+  if (currentCourse.level === undefined || currentCourse.level === null) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Current course does not have a level defined');
+  }
+
+  const nextLevel = currentCourse.level + 1;
+  const escapedInstrument = currentCourse.instrument.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const nextCourses = await Course.find({
+    level: nextLevel,
+    instrument: { $regex: new RegExp(`^${escapedInstrument}$`, 'i') },
+  });
+
+  if (nextCourses.length === 0) {
+    throw new ApiError(
+      httpStatus.NOT_FOUND,
+      `No course found for instrument "${currentCourse.instrument}" at level ${nextLevel}`
+    );
+  }
+
+  if (nextCourses.length > 1) {
+    throw new ApiError(
+      httpStatus.CONFLICT,
+      `Multiple courses found for instrument "${currentCourse.instrument}" at level ${nextLevel}`
+    );
+  }
+
+  return nextCourses[0]!;
+};
+
+/**
  * Create a course
  * @param {NewCreatedCourse} courseBody
  * @returns {Promise<ICourseDoc>}
@@ -32,6 +72,11 @@ export const queryCourses = async (filter: Record<string, any>, options: IOption
   if (transformedFilter['name']) {
     // Convert name filter to case-insensitive regex for partial matching
     transformedFilter['name'] = { $regex: transformedFilter['name'], $options: 'i' };
+  }
+
+  if (transformedFilter['instrument']) {
+    // Case-insensitive exact match for instrument filter
+    transformedFilter['instrument'] = { $regex: `^${transformedFilter['instrument']}$`, $options: 'i' };
   }
 
   const courses = await Course.paginate(transformedFilter, options);

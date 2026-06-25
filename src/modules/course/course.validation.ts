@@ -7,6 +7,7 @@ const createCourseBody: Record<keyof NewCreatedCourse, any> = {
   description: Joi.string().required(),
   image: Joi.string().optional(),
   instrument: Joi.string().required(),
+  level: Joi.number().required(),
   syllabus: Joi.array().items(Joi.string().custom(objectId)).optional(),
 };
 
@@ -17,6 +18,7 @@ export const createCourse = {
 export const getCourses = {
   query: Joi.object().keys({
     name: Joi.string(),
+    instrument: Joi.string(),
     sortBy: Joi.string(),
     projectBy: Joi.string(),
     limit: Joi.number().integer(),
@@ -40,6 +42,7 @@ export const updateCourse = {
       description: Joi.string(),
       syllabus: Joi.array().items(Joi.string().custom(objectId)).optional(),
       instrument: Joi.string(),
+      level: Joi.number(),
       image: Joi.string().optional(),
     })
     .min(1),

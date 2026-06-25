@@ -107,11 +107,25 @@ export const getStudentProgressByCourse = catchAsync(async (req: Request, res: R
 
 export const getStudentProgressByStudentAndClass = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['studentId'] === 'string' && typeof req.params['classId'] === 'string') {
-    const studentProgress = await studentProgressService.getStudentProgressByStudentAndClass(
-      new mongoose.Types.ObjectId(req.params['studentId']),
-      new mongoose.Types.ObjectId(req.params['classId'])
-    );
-    if (!studentProgress) {
+    const studentId = new mongoose.Types.ObjectId(req.params['studentId']);
+    const classId = new mongoose.Types.ObjectId(req.params['classId']);
+    const courseIdParam = req.query['courseId'];
+
+    if (typeof courseIdParam === 'string') {
+      const studentProgress = await studentProgressService.getStudentProgressByStudentClassAndCourse(
+        studentId,
+        classId,
+        new mongoose.Types.ObjectId(courseIdParam)
+      );
+      if (!studentProgress) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Student progress not found');
+      }
+      res.send(studentProgress);
+      return;
+    }
+
+    const studentProgress = await studentProgressService.getStudentProgressByStudentAndClass(studentId, classId);
+    if (Array.isArray(studentProgress) && studentProgress.length === 0) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Student progress not found');
     }
     res.send(studentProgress);

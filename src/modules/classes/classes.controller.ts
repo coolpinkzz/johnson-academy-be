@@ -126,18 +126,45 @@ export const addSingleStudentToClass = catchAsync(async (req: Request, res: Resp
   }
 });
 
+export const getStudentPromotionsInClass = catchAsync(async (req: Request, res: Response) => {
+  const classesId = req.params['classesId'];
+  const studentId = req.params['studentId'];
+  if (typeof classesId === 'string' && typeof studentId === 'string') {
+    const promotions = await classesService.getStudentPromotionsInClass(
+      new mongoose.Types.ObjectId(classesId),
+      new mongoose.Types.ObjectId(studentId)
+    );
+    res.send(promotions);
+  }
+});
+
+export const promoteStudentInClass = catchAsync(async (req: Request, res: Response) => {
+  const classesId = req.params['classesId'];
+  if (typeof classesId === 'string') {
+    const { studentId, courseId } = req.body;
+    const result = await classesService.promoteStudentInClass(
+      new mongoose.Types.ObjectId(classesId),
+      new mongoose.Types.ObjectId(studentId),
+      new mongoose.Types.ObjectId(courseId),
+      req.user?._id
+    );
+
+    res.status(result.alreadyPromoted ? httpStatus.OK : httpStatus.CREATED).send(result);
+  }
+});
+
 export const removeStudentFromClass = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can remove students from classes
   if (req.user && req.user.role !== 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can remove students from classes');
   }
 
   const classesId = req.params['classesId'];
   if (typeof classesId === 'string') {
-    const { studentId } = req.body;
-    const classes = await classesService.removeStudentFromClass(
+    const { studentId, courseId } = req.body;
+    const classes = await classesService.removeStudentCourseFromClass(
       new mongoose.Types.ObjectId(classesId),
-      new mongoose.Types.ObjectId(studentId)
+      new mongoose.Types.ObjectId(studentId),
+      new mongoose.Types.ObjectId(courseId)
     );
     res.status(httpStatus.OK).send(classes);
   }

@@ -97,6 +97,11 @@ export default router;
  *           type: string
  *         description: Filter by course name
  *       - in: query
+ *         name: instrument
+ *         schema:
+ *           type: string
+ *         description: Filter by instrument (e.g. Guitar, Piano, Drums)
+ *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string

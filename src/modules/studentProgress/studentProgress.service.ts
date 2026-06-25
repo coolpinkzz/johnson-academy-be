@@ -47,13 +47,14 @@ export const createStudentProgress = async (
     throw new ApiError(httpStatus.NOT_FOUND, 'Course not found');
   }
 
-  // Check if progress record already exists for this student-class combination
-  const existingProgress = await StudentProgress.findByStudentAndClass(
+  // Check if progress record already exists for this student-class-course combination
+  const existingProgress = await StudentProgress.findByStudentClassAndCourse(
     studentProgressBody.studentId,
-    studentProgressBody.classId
+    studentProgressBody.classId,
+    studentProgressBody.courseId
   );
   if (existingProgress) {
-    throw new ApiError(httpStatus.CONFLICT, 'Progress record already exists for this student in this class');
+    throw new ApiError(httpStatus.CONFLICT, 'Progress record already exists for this student, class, and course');
   }
 
   return StudentProgress.create(studentProgressBody);
@@ -69,9 +70,10 @@ export const createStudentProgress = async (
 export const createProgressForStudent = async (
   studentId: mongoose.Types.ObjectId,
   classId: mongoose.Types.ObjectId,
-  courseId: mongoose.Types.ObjectId
+  courseId: mongoose.Types.ObjectId,
+  session?: mongoose.ClientSession
 ): Promise<IStudentProgressDoc> => {
-  return StudentProgress.createProgressForStudent(studentId, classId, courseId);
+  return StudentProgress.createProgressForStudent(studentId, classId, courseId, session);
 };
 
 /**
@@ -183,12 +185,33 @@ export const getStudentProgressById = async (id: mongoose.Types.ObjectId): Promi
  * Get student progress by student and class
  * @param {mongoose.Types.ObjectId} studentId
  * @param {mongoose.Types.ObjectId} classId
- * @returns {Promise<IStudentProgressDoc | null>}
+ * @param {mongoose.Types.ObjectId} [courseId] - when provided, returns a single record
+ * @returns {Promise<IStudentProgressDoc | IStudentProgressDoc[] | null>}
  */
 export const getStudentProgressByStudentAndClass = async (
   studentId: mongoose.Types.ObjectId,
-  classId: mongoose.Types.ObjectId
-): Promise<IStudentProgressDoc | null> => StudentProgress.findByStudentAndClass(studentId, classId);
+  classId: mongoose.Types.ObjectId,
+  courseId?: mongoose.Types.ObjectId
+): Promise<IStudentProgressDoc | IStudentProgressDoc[] | null> => {
+  if (courseId) {
+    return StudentProgress.findByStudentClassAndCourse(studentId, classId, courseId);
+  }
+  const records = await StudentProgress.findAllByStudentAndClass(studentId, classId);
+  return records;
+};
+
+/**
+ * Get student progress by student, class, and course
+ * @param {mongoose.Types.ObjectId} studentId
+ * @param {mongoose.Types.ObjectId} classId
+ * @param {mongoose.Types.ObjectId} courseId
+ * @returns {Promise<IStudentProgressDoc | null>}
+ */
+export const getStudentProgressByStudentClassAndCourse = async (
+  studentId: mongoose.Types.ObjectId,
+  classId: mongoose.Types.ObjectId,
+  courseId: mongoose.Types.ObjectId
+): Promise<IStudentProgressDoc | null> => StudentProgress.findByStudentClassAndCourse(studentId, classId, courseId);
 
 /**
  * Get all progress records for a student
@@ -288,7 +311,7 @@ export const getClassProgressStatistics = async (classId: mongoose.Types.ObjectI
     };
   }
 
-  const totalStudents = progressRecords.length;
+  const totalStudents = new Set(progressRecords.map((record) => record.studentId.toString())).size;
   const averageProgress = Math.round(progressRecords.reduce((sum, record) => sum + record.progress, 0) / totalStudents);
   const completedStudents = progressRecords.filter((record) => record.progress === 100).length;
   const inProgressStudents = progressRecords.filter((record) => record.progress > 0 && record.progress < 100).length;

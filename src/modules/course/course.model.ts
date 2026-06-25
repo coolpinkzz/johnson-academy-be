@@ -24,6 +24,10 @@ const courseSchema = new mongoose.Schema<ICourseDoc, ICourseModel>(
       required: true,
       trim: true,
     },
+    level: {
+      type: Number,
+      required: false,
+    },
     syllabus: [
       {
         type: mongoose.Schema.Types.ObjectId,

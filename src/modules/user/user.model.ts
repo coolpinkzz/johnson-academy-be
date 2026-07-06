@@ -5,6 +5,7 @@ import toJSON from '../toJSON/toJSON';
 import paginate from '../paginate/paginate';
 import { roles } from '../../config/roles';
 import { IUserDoc, IUserModel } from './user.interfaces';
+import { isValidRollNumber, ROLL_NUMBER_ERROR_MESSAGE } from './rollNumber.util';
 
 const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
   {
@@ -51,13 +52,13 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
           if (this.role === 'student' && !value) {
             return false;
           }
-          // If value is provided, it should match the format JA/GTR/1234
-          if (value && !value.match(/^JA\/[A-Z]{3}\/\d{4}$/)) {
+          // Accept legacy (JA/ABC/1234) and new (JA/MMYY/NNNN) formats
+          if (value && !isValidRollNumber(value)) {
             return false;
           }
           return true;
         },
-        message: 'Roll number must be in format JA/GTR/1234 and is required for students',
+        message: `${ROLL_NUMBER_ERROR_MESSAGE} and is required for students`,
       },
     },
     isEmailVerified: {

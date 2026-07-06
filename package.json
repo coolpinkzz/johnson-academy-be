@@ -38,6 +38,7 @@
     "commit": "git add -A && cz",
     "script:migrate-students-in-class": "node dist/scripts/migrateStudentsInClass.js",
     "script:migrate-student-progress-index": "node dist/scripts/migrateStudentProgressIndex.js",
+    "script:migrate-mrt-course-id": "node dist/scripts/migrateMrtCourseId.js",
     "script:migrate-module-seq": "node dist/scripts/migrateModuleSeq.js",
     "script:sync-student-progress-modules": "node dist/scripts/syncStudentProgressModules.js",
     "script:delete-all-classes": "node dist/scripts/deleteAllClasses.js",

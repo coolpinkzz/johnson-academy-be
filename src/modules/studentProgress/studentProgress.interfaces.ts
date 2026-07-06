@@ -80,3 +80,8 @@ export interface IEndModuleBody {
   syllabusId: mongoose.Types.ObjectId;
   score: number;
 }
+
+export interface ICancelModuleBody {
+  moduleId: mongoose.Types.ObjectId;
+  syllabusId: mongoose.Types.ObjectId;
+}

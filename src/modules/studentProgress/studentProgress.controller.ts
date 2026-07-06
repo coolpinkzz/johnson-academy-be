@@ -71,6 +71,16 @@ export const endModule = catchAsync(async (req: Request, res: Response) => {
   }
 });
 
+export const cancelModule = catchAsync(async (req: Request, res: Response) => {
+  if (typeof req.params['studentProgressId'] === 'string') {
+    const studentProgress = await studentProgressService.cancelModule(
+      new mongoose.Types.ObjectId(req.params['studentProgressId']),
+      req.body
+    );
+    res.send(studentProgress);
+  }
+});
+
 export const deleteStudentProgress = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['studentProgressId'] === 'string') {
     await studentProgressService.deleteStudentProgressById(new mongoose.Types.ObjectId(req.params['studentProgressId']));

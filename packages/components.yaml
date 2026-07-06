@@ -444,6 +444,23 @@ components:
         moduleId: 507f1f77bcf86cd799439021
         syllabusId: 507f1f77bcf86cd799439041
 
+    CancelModule:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          format: objectId
+          required: true
+          description: Module ID to cancel
+        syllabusId:
+          type: string
+          format: objectId
+          required: true
+          description: Syllabus ID
+      example:
+        moduleId: 507f1f77bcf86cd799439021
+        syllabusId: 507f1f77bcf86cd799439041
+
     EndModule:
       type: object
       properties:

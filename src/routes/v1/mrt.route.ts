@@ -64,9 +64,13 @@ router.get('/month/:month', validate(mrtValidation.getMRTsByMonth), mrtControlle
 
 /**
  * @route GET /v1/mrt/student/:studentId/class/:classId/month/:month
- * @desc Get MRT by student, class, and month
+ * @desc Get MRT by student, class, course, and month
  * @access Public
  */
-router.get('/student/:studentId/class/:classId/month/:month', mrtController.getMRTByStudentClassMonth);
+router.get(
+  '/student/:studentId/class/:classId/month/:month',
+  validate(mrtValidation.getMRTByStudentClassMonth),
+  mrtController.getMRTByStudentClassMonth
+);
 
 export default router;

@@ -51,6 +51,11 @@ const startModuleBody: Record<string, any> = {
   syllabusId: Joi.string().custom(objectId).required(),
 };
 
+const cancelModuleBody: Record<string, any> = {
+  moduleId: Joi.string().custom(objectId).required(),
+  syllabusId: Joi.string().custom(objectId).required(),
+};
+
 const endModuleBody: Record<string, any> = {
   moduleId: Joi.string().custom(objectId).required(),
   syllabusId: Joi.string().custom(objectId).required(),
@@ -105,6 +110,13 @@ export const endModule = {
     studentProgressId: Joi.string().custom(objectId).required(),
   }),
   body: Joi.object().keys(endModuleBody),
+};
+
+export const cancelModule = {
+  params: Joi.object().keys({
+    studentProgressId: Joi.string().custom(objectId).required(),
+  }),
+  body: Joi.object().keys(cancelModuleBody),
 };
 
 export const deleteStudentProgress = {

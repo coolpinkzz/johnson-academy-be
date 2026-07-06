@@ -161,6 +161,13 @@ studentProgressSchema.methods['updateModuleStatus'] = async function (
         }
       }
 
+      if (status === 'upcoming') {
+        delete module.startDate;
+        delete module.endDate;
+        delete module.score;
+        delete module.dateTakenToComplete;
+      }
+
       moduleFound = true;
       break;
     }

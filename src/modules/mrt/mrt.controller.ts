@@ -62,7 +62,7 @@ export const deleteMRT = catchAsync(async (req: Request, res: Response) => {
  * @access Public
  */
 export const getMRTs = catchAsync(async (req: Request, res: Response) => {
-  const filter = pick(req.query, ['month', 'classId', 'studentId']);
+  const filter = pick(req.query, ['month', 'classId', 'studentId', 'courseId']);
   const options: IOptions = pick(req.query, ['sortBy', 'sortOrder', 'limit', 'page']);
 
   const result = await mrtService.queryMRTs(filter, options);
@@ -77,7 +77,8 @@ export const getMRTs = catchAsync(async (req: Request, res: Response) => {
 export const getMRTsByStudent = catchAsync(async (req: Request, res: Response) => {
   const options: IOptions = pick(req.query, ['sortBy', 'sortOrder', 'limit', 'page']);
   const studentId = req.params['studentId'] as string;
-  const result = await mrtService.getMRTsByStudent(studentId, options);
+  const filter = pick(req.query, ['courseId']);
+  const result = await mrtService.queryMRTs({ studentId, ...filter }, options);
   res.status(httpStatus.OK).send(result);
 });
 
@@ -88,7 +89,8 @@ export const getMRTsByStudent = catchAsync(async (req: Request, res: Response) =
 export const getMRTsByClass = catchAsync(async (req: Request, res: Response) => {
   const options: IOptions = pick(req.query, ['sortBy', 'sortOrder', 'limit', 'page']);
   const classId = req.params['classId'] as string;
-  const result = await mrtService.getMRTsByClass(classId, options);
+  const filter = pick(req.query, ['courseId']);
+  const result = await mrtService.queryMRTs({ classId, ...filter }, options);
   res.status(httpStatus.OK).send(result);
 });
 
@@ -105,20 +107,21 @@ export const getMRTsByMonth = catchAsync(async (req: Request, res: Response) => 
 });
 
 /**
- * Get MRT by student, class, and month
- * @route GET /v1/mrt/student/:studentId/class/:classId/month/:month
+ * Get MRT by student, class, course, and month
+ * @route GET /v1/mrt/student/:studentId/class/:classId/month/:month?courseId=
  * @access Public
  */
 export const getMRTByStudentClassMonth = catchAsync(async (req: Request, res: Response) => {
   const studentId = req.params['studentId'] as string;
   const classId = req.params['classId'] as string;
   const month = req.params['month'] as string;
-  const mrt = await mrtService.getMRTByStudentClassMonth(studentId, classId, month);
+  const courseId = req.query['courseId'] as string;
+  const mrt = await mrtService.getMRTByStudentClassMonth(studentId, classId, month, courseId);
 
   if (!mrt) {
     res.status(httpStatus.NOT_FOUND).send({
       code: httpStatus.NOT_FOUND,
-      message: 'MRT not found for the specified student, class, and month',
+      message: 'MRT not found for the specified student, class, course, and month',
     });
     return;
   }

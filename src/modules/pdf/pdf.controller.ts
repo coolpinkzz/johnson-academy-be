@@ -72,7 +72,12 @@ export class PDFController {
 
       const monthFormatted = moment(month as string).format('MM-YYYY');
       // Fetch MRT data
-      const mrtData = await getMRTByStudentClassMonth(studentId as string, classId as string, monthFormatted as string);
+      const mrtData = await getMRTByStudentClassMonth(
+        studentId as string,
+        classId as string,
+        monthFormatted as string,
+        courseId as string
+      );
 
       // console.log(mrtData);
       // Sample syllabus modules data (in a real app, this would come from database based on query params)

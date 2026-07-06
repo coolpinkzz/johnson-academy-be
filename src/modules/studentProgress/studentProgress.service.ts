@@ -16,6 +16,7 @@ import {
   IUpdateModuleProgressBody,
   IStartModuleBody,
   IEndModuleBody,
+  ICancelModuleBody,
 } from './studentProgress.interfaces';
 
 /**
@@ -444,6 +445,48 @@ export const endModule = async (
 
   // Use the existing updateModuleStatus method to update the module
   await studentProgress.updateModuleStatus(endBody.moduleId, 'completed', endBody.score);
+
+  return studentProgress;
+};
+
+/**
+ * Cancel a started module for a student (revert inprogress → upcoming)
+ * @param {mongoose.Types.ObjectId} studentProgressId
+ * @param {ICancelModuleBody} cancelBody
+ * @returns {Promise<IStudentProgressDoc | null>}
+ */
+export const cancelModule = async (
+  studentProgressId: mongoose.Types.ObjectId,
+  cancelBody: ICancelModuleBody
+): Promise<IStudentProgressDoc | null> => {
+  const studentProgress = await StudentProgress.findById(studentProgressId);
+  if (!studentProgress) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Student progress not found');
+  }
+
+  const syllabusProgress = studentProgress.syllabusProgress.find(
+    (sp) => sp.syllabusId.toString() === cancelBody.syllabusId.toString()
+  );
+
+  if (!syllabusProgress) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Syllabus progress not found');
+  }
+
+  const moduleProgress = syllabusProgress.modules.find((mp) => mp.moduleId.toString() === cancelBody.moduleId.toString());
+
+  if (!moduleProgress) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Module not found in syllabus');
+  }
+
+  if (moduleProgress.status !== 'inprogress') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Module must be in inprogress status to cancel');
+  }
+
+  if (moduleProgress.score != null) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot cancel a module that has a score');
+  }
+
+  await studentProgress.updateModuleStatus(cancelBody.moduleId, 'upcoming');
 
   return studentProgress;
 };

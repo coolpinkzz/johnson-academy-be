@@ -9,6 +9,7 @@ export const createMRT = {
       .message('Month must be in format MM-YYYY or YYYY-MM'),
     classId: Joi.string().custom(objectId).required(),
     studentId: Joi.string().custom(objectId).required(),
+    courseId: Joi.string().custom(objectId).required(),
     sptAndFileSubmission: Joi.number().integer().min(0).max(5).required().messages({
       'number.base': 'SPT & File Submission must be a number',
       'number.integer': 'SPT & File Submission must be an integer',
@@ -119,6 +120,7 @@ export const getMRTsByStudent = {
     studentId: Joi.string().custom(objectId).required(),
   }),
   query: Joi.object().keys({
+    courseId: Joi.string().custom(objectId).optional(),
     limit: Joi.number().integer().min(1).max(100).default(10),
     page: Joi.number().integer().min(1).default(1),
     sortBy: Joi.string().valid('month', 'createdAt', 'updatedAt').default('month'),
@@ -131,6 +133,7 @@ export const getMRTsByClass = {
     classId: Joi.string().custom(objectId).required(),
   }),
   query: Joi.object().keys({
+    courseId: Joi.string().custom(objectId).optional(),
     limit: Joi.number().integer().min(1).max(100).default(10),
     page: Joi.number().integer().min(1).default(1),
     sortBy: Joi.string().valid('month', 'studentId', 'createdAt').default('month'),
@@ -150,5 +153,19 @@ export const getMRTsByMonth = {
     page: Joi.number().integer().min(1).default(1),
     sortBy: Joi.string().valid('classId', 'studentId', 'createdAt').default('classId'),
     sortOrder: Joi.string().valid('asc', 'desc').default('asc'),
+  }),
+};
+
+export const getMRTByStudentClassMonth = {
+  params: Joi.object().keys({
+    studentId: Joi.string().custom(objectId).required(),
+    classId: Joi.string().custom(objectId).required(),
+    month: Joi.string()
+      .required()
+      .pattern(/^(0[1-9]|1[0-2])-\d{4}$|^\d{4}-(0[1-9]|1[0-2])$/)
+      .message('Month must be in format MM-YYYY or YYYY-MM'),
+  }),
+  query: Joi.object().keys({
+    courseId: Joi.string().custom(objectId).required(),
   }),
 };

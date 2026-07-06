@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { password, objectId } from '../validate/custom.validation';
+import { password, objectId, rollNumber } from '../validate/custom.validation';
 import { NewCreatedUser } from './user.interfaces';
 
 const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 'progress' | 'isCompleteProfile'>, any> = {
@@ -7,7 +7,11 @@ const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 
   password: Joi.string().required().custom(password),
   name: Joi.string().required(),
   role: Joi.string().required().valid('admin', 'teacher', 'student'),
-  rollNumber: Joi.string().required(),
+  rollNumber: Joi.string().custom(rollNumber).when('role', {
+    is: 'student',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
   studentId: Joi.string().when('role', {
     is: 'student',
     then: Joi.required(),
@@ -88,7 +92,7 @@ export const updateUser = {
       email: Joi.string().email(),
       password: Joi.string().custom(password),
       name: Joi.string(),
-      rollNumber: Joi.string(),
+      rollNumber: Joi.string().custom(rollNumber),
       profilePicture: Joi.string().uri().allow('').optional(),
       phoneNumber: Joi.string().pattern(/^\+?[\d\s-()]+$/),
       isCompleteProfile: Joi.boolean().optional(),

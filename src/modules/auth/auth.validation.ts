@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { password } from '../validate/custom.validation';
+import { password, rollNumber } from '../validate/custom.validation';
 import { roles } from '../../config/roles';
 
 const registerBody = {
@@ -10,7 +10,7 @@ const registerBody = {
     .required()
     .valid(...roles),
   rollNumber: Joi.string()
-    .pattern(/^JA\/[A-Z]{3}\/\d{4}$/)
+    .custom(rollNumber)
     .when('role', {
       is: 'student',
       then: Joi.required(),

@@ -28,6 +28,11 @@ const mrtSchema = new mongoose.Schema<IMRTDoc, IMRTModel>(
       required: true,
       ref: 'User',
     },
+    courseId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: 'Course',
+    },
     sptAndFileSubmission: {
       type: Number,
       required: true,
@@ -105,14 +110,22 @@ const mrtSchema = new mongoose.Schema<IMRTDoc, IMRTModel>(
       trim: true,
       maxlength: 500,
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
   },
   {
     timestamps: true,
   }
 );
 
-// Compound index to ensure unique month per student per class
-mrtSchema.index({ month: 1, classId: 1, studentId: 1 }, { unique: true });
+// One MRT per student + class + course + month (supports multiple courses per class)
+mrtSchema.index({ month: 1, classId: 1, studentId: 1, courseId: 1 }, { unique: true });
 
 // Pre-save middleware to calculate total and average scores
 mrtSchema.pre('save', function (this: any, next) {
@@ -140,9 +153,10 @@ mrtSchema.pre('save', function (this: any, next) {
 mrtSchema.statics['isMonthExistsForStudent'] = async function (
   studentId: string,
   classId: string,
-  month: string
+  month: string,
+  courseId: string
 ): Promise<boolean> {
-  const mrt = await this.findOne({ studentId, classId, month });
+  const mrt = await this.findOne({ studentId, classId, month, courseId });
   return !!mrt;
 };
 

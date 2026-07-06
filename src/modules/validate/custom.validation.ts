@@ -1,8 +1,16 @@
 import { CustomHelpers } from 'joi';
+import { isValidRollNumber, ROLL_NUMBER_ERROR_MESSAGE } from '../user/rollNumber.util';
 
 export const objectId = (value: string, helpers: CustomHelpers) => {
   if (!value.match(/^[0-9a-fA-F]{24}$/)) {
     return helpers.message({ custom: '"{{#label}}" must be a valid mongo id' });
+  }
+  return value;
+};
+
+export const rollNumber = (value: string, helpers: CustomHelpers) => {
+  if (!isValidRollNumber(value)) {
+    return helpers.message({ custom: ROLL_NUMBER_ERROR_MESSAGE });
   }
   return value;
 };

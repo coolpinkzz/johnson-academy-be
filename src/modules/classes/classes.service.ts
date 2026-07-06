@@ -6,6 +6,7 @@ import Course from '../course/course.model';
 import { findNextLevelCourse } from '../course/course.service';
 import StudentProgress from '../studentProgress/studentProgress.model';
 import StudentAttendance from '../studentAttendance/studentAttendance.model';
+import MRT from '../mrt/mrt.model';
 import ApiError from '../errors/ApiError';
 import {
   createStudentPromotion,
@@ -882,6 +883,8 @@ export const removeStudentCourseFromClass = async (
     } else {
       await User.findByIdAndUpdate(studentId, { $pull: { courses: courseId } }, { session });
     }
+
+    await MRT.deleteMany({ studentId, classId: classesId, courseId }, { session });
 
     const remainingProgressCount = await StudentProgress.countDocuments(
       { studentId, classId: classesId },

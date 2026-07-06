@@ -1,9 +1,19 @@
 import mongoose from 'mongoose';
 import { IMRTDoc, IMRTCreateBody, IMRTUpdateBody } from './mrt.interfaces';
 import MRT from './mrt.model';
+import Course from '../course/course.model';
+import StudentProgress from '../studentProgress/studentProgress.model';
 import ApiError from '../errors/ApiError';
 import httpStatus from 'http-status';
 import { IOptions, QueryResult } from '../paginate/paginate';
+
+const mrtPopulate = [
+  { path: 'studentId', select: 'name email studentId' },
+  { path: 'classId', select: 'name' },
+  { path: 'courseId', select: 'name description instrument level' },
+  { path: 'createdBy', select: 'name email' },
+  { path: 'updatedBy', select: 'name email' },
+];
 
 /**
  * Create a new MRT record
@@ -12,11 +22,32 @@ import { IOptions, QueryResult } from '../paginate/paginate';
  * @returns {Promise<IMRTDoc>}
  */
 export const createMRT = async (mrtBody: IMRTCreateBody, userId: string): Promise<IMRTDoc> => {
-  // Check if MRT already exists for this student, class, and month
-  const existingMRT = await MRT.isMonthExistsForStudent(mrtBody.studentId, mrtBody.classId, mrtBody.month);
+  const course = await Course.findById(mrtBody.courseId);
+  if (!course) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Course not found');
+  }
+
+  const enrolled = await StudentProgress.findOne({
+    studentId: mrtBody.studentId,
+    classId: mrtBody.classId,
+    courseId: mrtBody.courseId,
+  });
+  if (!enrolled) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Student is not enrolled in this course in the specified class');
+  }
+
+  const existingMRT = await MRT.isMonthExistsForStudent(
+    mrtBody.studentId,
+    mrtBody.classId,
+    mrtBody.month,
+    mrtBody.courseId
+  );
 
   if (existingMRT) {
-    throw new ApiError(httpStatus.CONFLICT, 'MRT record already exists for this student, class, and month');
+    throw new ApiError(
+      httpStatus.CONFLICT,
+      'MRT record already exists for this student, class, course, and month'
+    );
   }
 
   const mrt = await MRT.create({
@@ -24,7 +55,7 @@ export const createMRT = async (mrtBody: IMRTCreateBody, userId: string): Promis
     createdBy: userId,
   });
 
-  return mrt;
+  return mrt.populate(mrtPopulate);
 };
 
 /**
@@ -33,28 +64,24 @@ export const createMRT = async (mrtBody: IMRTCreateBody, userId: string): Promis
  * @returns {Promise<IMRTDoc | null>}
  */
 export const getMRTById = async (id: mongoose.Types.ObjectId): Promise<IMRTDoc | null> => {
-  return MRT.findById(id)
-    .populate('studentId', 'name email studentId')
-    .populate('classId', 'name')
-    .populate('createdBy', 'name email')
-    .populate('updatedBy', 'name email');
+  return MRT.findById(id).populate(mrtPopulate);
 };
 
 /**
- * Get MRT by student, class, and month
+ * Get MRT by student, class, course, and month
  * @param {string} studentId
  * @param {string} classId
  * @param {string} month
+ * @param {string} courseId
  * @returns {Promise<IMRTDoc | null>}
  */
 export const getMRTByStudentClassMonth = async (
   studentId: string,
   classId: string,
-  month: string
+  month: string,
+  courseId: string
 ): Promise<IMRTDoc | null> => {
-  return MRT.findOne({ studentId, classId, month })
-    .populate('studentId', 'name email studentId')
-    .populate('classId', 'name');
+  return MRT.findOne({ studentId, classId, month, courseId }).populate(mrtPopulate);
 };
 
 /**
@@ -66,12 +93,7 @@ export const getMRTByStudentClassMonth = async (
 export const queryMRTs = async (filter: Record<string, any>, options: IOptions): Promise<QueryResult> => {
   const mrtResults = await MRT.paginate(filter, {
     ...options,
-    populate: [
-      { path: 'studentId', select: 'name email studentId' },
-      { path: 'classId', select: 'name' },
-      { path: 'createdBy', select: 'name email' },
-      { path: 'updatedBy', select: 'name email' },
-    ],
+    populate: mrtPopulate,
   });
   return mrtResults;
 };
@@ -95,7 +117,7 @@ export const updateMRTById = async (
 
   Object.assign(mrt, { ...updateBody, updatedBy: userId });
   await mrt.save();
-  return mrt;
+  return mrt.populate(mrtPopulate);
 };
 
 /**

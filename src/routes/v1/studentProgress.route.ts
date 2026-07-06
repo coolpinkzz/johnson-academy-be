@@ -53,6 +53,14 @@ router
   .post(auth('manageStudentProgress'), validate(studentProgressValidation.endModule), studentProgressController.endModule);
 
 router
+  .route('/:studentProgressId/cancel-module')
+  .post(
+    auth('manageStudentProgress'),
+    validate(studentProgressValidation.cancelModule),
+    studentProgressController.cancelModule
+  );
+
+router
   .route('/student/:studentId')
   .get(
     auth('getStudentProgress'),
@@ -383,6 +391,46 @@ export default router;
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/StartModule'
+ *     responses:
+ *       "200":
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StudentProgress'
+ *       "400":
+ *         $ref: '#/components/responses/BadRequest'
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ */
+
+/**
+ * @swagger
+ * /student-progress/{studentProgressId}/cancel-module:
+ *   post:
+ *     summary: Cancel a started module
+ *     description: Revert an in-progress module back to upcoming. Clears start date and related tracking fields.
+ *     tags: [StudentProgress]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: studentProgressId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectId
+ *         description: Student progress record ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CancelModule'
  *     responses:
  *       "200":
  *         description: OK

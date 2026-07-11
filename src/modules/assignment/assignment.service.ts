@@ -238,11 +238,6 @@ export const submitAssignment = async (
     throw new ApiError(httpStatus.FORBIDDEN, 'This assignment is not for you');
   }
 
-  // Check if assignment is still open (not past due date)
-  if (new Date() > assignment.dueDate) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Assignment submission deadline has passed');
-  }
-
   // Check if already submitted
   const existingSubmission = assignment.submissions.find(
     (submission) => submission.student.toString() === studentId.toString()

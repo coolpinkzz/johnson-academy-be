@@ -69,13 +69,9 @@ export class PDFService {
     const logoPath = this.findLogoFile();
     if (logoPath) {
       try {
-        // Position logo at the top center, above the title
         doc.image(logoPath, 250, 40, { width: 80, height: 80, align: 'center' });
         doc.moveDown(7);
         console.log('Logo loaded successfully from:', logoPath);
-        // // Subtitle - Monthly Report Card
-        doc.fontSize(18).fillColor('#1a4e8a').text(`Monthly Report Card - ${month}`, { align: 'center' });
-        doc.moveDown(1);
       } catch (error) {
         console.log('Error loading logo:', error);
         doc.moveDown(1);
@@ -85,14 +81,9 @@ export class PDFService {
       doc.moveDown(1);
     }
 
-    // Main Title - Johnson's Academy (positioned below logo)
-    // doc.fontSize(24).fillColor('#1a4e8a').text("Johnson's Academy", { align: 'center' });
-    // doc.moveDown(0.2);
+    doc.fontSize(18).fillColor('#1a4e8a').text(`Monthly Report Card - ${month}`, { align: 'center' });
+    doc.moveDown(1);
 
-    // doc.fontSize(16).fillColor('#1a4e8a').text(`Class Attendance & Sessions - ${month}`);
-    // doc.moveDown(1);
-
-    // remove this
     doc.fontSize(12).fillColor('#333333');
     doc.moveDown(0.5);
 

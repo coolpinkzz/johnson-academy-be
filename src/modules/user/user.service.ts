@@ -6,6 +6,7 @@ import { resolveClassTeacherIds } from '../classes/classes.util';
 import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedUser, UpdateUserBody, IUserDoc, NewRegisteredUser } from './user.interfaces';
+import { buildBranchRollNumberFilter, buildRollNumberSearchFilter } from './rollNumber.util';
 
 /**
  * Create a user
@@ -86,15 +87,35 @@ export const registerUser = async (userBody: NewRegisteredUser): Promise<IUserDo
 export const queryUsers = async (filter: Record<string, any>, options: IOptions): Promise<QueryResult> => {
   // Transform the filter to handle partial name matching
   const transformedFilter = { ...filter };
+  const branch = transformedFilter['branch'];
+  delete transformedFilter['branch'];
 
   if (transformedFilter['name']) {
     // Convert name filter to case-insensitive regex for partial matching
     transformedFilter['name'] = { $regex: transformedFilter['name'], $options: 'i' };
   }
 
+  const rollNumberFilters: Array<{ $regex: string; $options: string }> = [];
+
   if (transformedFilter['rollNumber']) {
-    // Convert rollNumber filter to case-insensitive regex for partial matching
-    transformedFilter['rollNumber'] = { $regex: transformedFilter['rollNumber'], $options: 'i' };
+    rollNumberFilters.push(buildRollNumberSearchFilter(String(transformedFilter['rollNumber'])));
+    delete transformedFilter['rollNumber'];
+  }
+
+  if (branch != null && branch !== '') {
+    const branchFilter = buildBranchRollNumberFilter(String(branch));
+    if (branchFilter) {
+      rollNumberFilters.push(branchFilter);
+    }
+  }
+
+  if (rollNumberFilters.length === 1) {
+    transformedFilter['rollNumber'] = rollNumberFilters[0];
+  } else if (rollNumberFilters.length > 1) {
+    transformedFilter['$and'] = [
+      ...(Array.isArray(transformedFilter['$and']) ? transformedFilter['$and'] : []),
+      ...rollNumberFilters.map((rollNumber) => ({ rollNumber })),
+    ];
   }
 
   // If filtering by teacher role, populate courses

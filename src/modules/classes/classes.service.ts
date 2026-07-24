@@ -16,12 +16,29 @@ import {
 import { IStudentProgressDoc } from '../studentProgress/studentProgress.interfaces';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedClasses, UpdateClassesBody, IClassesDoc } from './classes.interfaces';
-import { filterClassesByTeacher } from './classes.util';
+import { filterClassesByTeacher, isDefaultTimeRangeValid } from './classes.util';
 
 const getObjectId = (val: mongoose.Types.ObjectId | { _id?: mongoose.Types.ObjectId } | null | undefined) => {
   if (!val) return null;
   if (typeof val === 'object' && '_id' in val && val._id) return val._id;
   return val as mongoose.Types.ObjectId;
+};
+
+const assertClassScheduleDefaults = (startTime?: string, endTime?: string) => {
+  if (!isDefaultTimeRangeValid(startTime, endTime)) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'defaultStartTime and defaultEndTime must both be provided and start must be before end (HH:mm)'
+    );
+  }
+};
+
+const assertCourseExists = async (courseId: mongoose.Types.ObjectId | undefined, label = 'Course') => {
+  if (!courseId) return;
+  const course = await Course.findById(courseId);
+  if (!course) {
+    throw new ApiError(httpStatus.NOT_FOUND, `${label} not found`);
+  }
 };
 
 /**
@@ -58,6 +75,9 @@ export const createClasses = async (classesBody: NewCreatedClasses): Promise<ICl
       throw new ApiError(httpStatus.BAD_REQUEST, 'User must be a teacher to be assigned to a class');
     }
   }
+
+  assertClassScheduleDefaults(body.defaultStartTime, body.defaultEndTime);
+  await assertCourseExists(body.courseId);
 
   const { teacherId: _omit, teachers: _omitT, ...rest } = body;
   const createdClass = await Classes.create({
@@ -295,12 +315,12 @@ export const updateClassesById = async (
     }
   }
 
-  // Validate courseId if it's being updated
-  if (updateBody.courseId) {
-    const course = await Course.findById(updateBody.courseId);
-    if (!course) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Course not found');
-    }
+  await assertCourseExists(updateBody.courseId);
+
+  const mergedStart = patch.defaultStartTime ?? classes.defaultStartTime;
+  const mergedEnd = patch.defaultEndTime ?? classes.defaultEndTime;
+  if (patch.defaultStartTime !== undefined || patch.defaultEndTime !== undefined) {
+    assertClassScheduleDefaults(mergedStart, mergedEnd);
   }
 
   // Validate students if they're being updated

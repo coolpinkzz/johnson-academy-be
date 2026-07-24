@@ -18,7 +18,7 @@ export const createClasses = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const getClasses = catchAsync(async (req: Request, res: Response) => {
-  const filter = pick(req.query, ['teacherId', 'teachers', 'courseId', 'name']);
+  const filter = pick(req.query, ['teacherId', 'teachers', 'courseId', 'name', 'branch', 'academicYear']);
   const options: IOptions = pick(req.query, ['sortBy', 'limit', 'page', 'projectBy']);
   const result = await classesService.queryClasses(filter, options);
   res.send(result);

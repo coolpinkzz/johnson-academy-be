@@ -1,6 +1,7 @@
 import Joi from 'joi';
 import { password, objectId, rollNumber } from '../validate/custom.validation';
 import { NewCreatedUser } from './user.interfaces';
+import { BRANCH_QUERY_VALUES } from './rollNumber.util';
 
 const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 'progress' | 'isCompleteProfile'>, any> = {
   email: Joi.string().required().email(),
@@ -66,6 +67,7 @@ export const getUsers = {
     name: Joi.string().allow(''),
     role: Joi.string().valid('admin', 'teacher', 'student'),
     rollNumber: Joi.string(),
+    branch: Joi.string().valid(...BRANCH_QUERY_VALUES),
     department: Joi.string(),
     gradeLevel: Joi.string(),
     isActive: Joi.boolean(),

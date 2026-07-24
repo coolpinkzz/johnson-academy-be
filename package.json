@@ -16,9 +16,10 @@
   "scripts": {
     "start": "pm2 start ecosystem.config.json --no-daemon",
     "start:build": "tsc --build && pm2 start ecosystem.config.json --no-daemon",
-    "compile": "tsc --build",
+    "compile": "tsc --build && yarn copy:assets",
     "compile:watch": "tsc --build --watch",
-    "pre:dev": "cross-env NODE_ENV=development nodemon --experimental-modules --es-module-specifier-resolution=node dist/index.js",
+    "copy:assets": "mkdir -p dist/modules/pdf/assets && cp -R src/modules/pdf/assets/. dist/modules/pdf/assets/",
+    "pre:dev": "yarn copy:assets && cross-env NODE_ENV=development nodemon --experimental-modules --es-module-specifier-resolution=node dist/index.js",
     "dev": "concurrently --kill-others \"yarn compile:watch\" \"yarn pre:dev\"",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest -i --colors --verbose --detectOpenHandles",
     "test:ts": "cross-env NODE_OPTIONS=--experimental-vm-modules jest -i --colors --verbose --detectOpenHandles -- 'ts$'",

@@ -1,13 +1,21 @@
 import mongoose from 'mongoose';
 import toJSON from '../toJSON/toJSON';
 import paginate from '../paginate/paginate';
-import { IClassesDoc, IClassesModel } from './classes.interfaces';
+import { CLASS_WEEKDAYS, IClassesDoc, IClassesModel } from './classes.interfaces';
 
 const classesSchema = new mongoose.Schema<IClassesDoc, IClassesModel>(
   {
     name: {
       type: String,
       required: true,
+      trim: true,
+    },
+    branch: {
+      type: String,
+      trim: true,
+    },
+    academicYear: {
+      type: String,
       trim: true,
     },
     teachers: [
@@ -41,6 +49,33 @@ const classesSchema = new mongoose.Schema<IClassesDoc, IClassesModel>(
         course: { type: mongoose.Schema.Types.ObjectId, ref: 'Course' },
       },
     ],
+    notes: {
+      type: String,
+      trim: true,
+    },
+    sessionCapacity: {
+      type: Number,
+      min: 1,
+    },
+    defaultWeekdays: {
+      type: [
+        {
+          type: String,
+          enum: CLASS_WEEKDAYS,
+        },
+      ],
+      default: [],
+    },
+    defaultStartTime: {
+      type: String,
+      trim: true,
+      match: /^([01]\d|2[0-3]):([0-5]\d)$/,
+    },
+    defaultEndTime: {
+      type: String,
+      trim: true,
+      match: /^([01]\d|2[0-3]):([0-5]\d)$/,
+    },
   },
   {
     timestamps: true,
@@ -52,7 +87,6 @@ classesSchema.path('teachers').validate(function (value: any[]) {
   return (value && value.length > 0) || !!(this as mongoose.Document & { teacherId?: mongoose.Types.ObjectId }).teacherId;
 }, 'At least one teacher is required');
 
-// add plugin that converts mongoose to json
 classesSchema.plugin(toJSON);
 classesSchema.plugin(paginate);
 

@@ -30,3 +30,19 @@ export function resolveClassTeacherIds(classLike: Record<string, any>): string[]
 export function isUserClassTeacher(classLike: Record<string, any>, userId: string): boolean {
   return resolveClassTeacherIds(classLike).includes(userId);
 }
+
+/** HH:mm → minutes since midnight; returns null if invalid */
+export function parseHhMmToMinutes(time: string): number | null {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(time);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+export function isDefaultTimeRangeValid(startTime?: string, endTime?: string): boolean {
+  if (!startTime && !endTime) return true;
+  if (!startTime || !endTime) return false;
+  const start = parseHhMmToMinutes(startTime);
+  const end = parseHhMmToMinutes(endTime);
+  if (start == null || end == null) return false;
+  return start < end;
+}

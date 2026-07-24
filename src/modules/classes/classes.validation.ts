@@ -1,12 +1,63 @@
 import Joi from 'joi';
 import { objectId } from '../validate/custom.validation';
+import { BRANCH_QUERY_VALUES } from '../user/rollNumber.util';
+import { CLASS_WEEKDAYS } from './classes.interfaces';
 
 const teachersJoi = Joi.array().items(Joi.string().custom(objectId));
+
+const hhMm = Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/).messages({
+  'string.pattern.base': 'Time must be in HH:mm 24-hour format',
+});
+
+const scheduleDefaultsFields = {
+  defaultWeekdays: Joi.array()
+    .items(Joi.string().valid(...CLASS_WEEKDAYS))
+    .unique()
+    .optional(),
+  defaultStartTime: hhMm.optional(),
+  defaultEndTime: hhMm.optional(),
+};
+
+const optionalMetaFields = {
+  branch: Joi.string()
+    .valid(...BRANCH_QUERY_VALUES)
+    .optional(),
+  academicYear: Joi.string().trim().max(32).optional(),
+  notes: Joi.string().trim().allow('').optional(),
+  sessionCapacity: Joi.number().integer().min(1).optional(),
+};
+
+const assertScheduleTimesBothPresent = (value: Record<string, unknown>, helpers: Joi.CustomHelpers) => {
+  const start = value['defaultStartTime'] as string | undefined;
+  const end = value['defaultEndTime'] as string | undefined;
+  if (start == null && end == null) return value;
+  if (start == null || end == null) {
+    return helpers.message({ custom: 'defaultStartTime and defaultEndTime must both be provided' });
+  }
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  if (sh! * 60 + sm! >= eh! * 60 + em!) {
+    return helpers.message({ custom: 'defaultStartTime must be before defaultEndTime' });
+  }
+  return value;
+};
+
+/** On update, only validate the pair when both times are in the payload; service merges with existing. */
+const assertScheduleTimesIfBothInPayload = (value: Record<string, unknown>, helpers: Joi.CustomHelpers) => {
+  const hasStart = Object.prototype.hasOwnProperty.call(value, 'defaultStartTime');
+  const hasEnd = Object.prototype.hasOwnProperty.call(value, 'defaultEndTime');
+  if (hasStart && hasEnd) {
+    return assertScheduleTimesBothPresent(value, helpers);
+  }
+  return value;
+};
 
 const createClassesBody = {
   name: Joi.string().required(),
   teachers: teachersJoi,
   teacherId: Joi.string().custom(objectId),
+  courseId: Joi.string().custom(objectId).optional(),
+  students: Joi.array().items(Joi.string().custom(objectId)).optional(),
   studentsInClass: Joi.array()
     .items(
       Joi.object({
@@ -15,6 +66,8 @@ const createClassesBody = {
       })
     )
     .optional(),
+  ...optionalMetaFields,
+  ...scheduleDefaultsFields,
 };
 
 export const createClasses = {
@@ -22,13 +75,10 @@ export const createClasses = {
     .keys(createClassesBody)
     .custom((value, helpers) => {
       const hasTeachers = Array.isArray(value.teachers) && value.teachers.length > 0;
-      if (hasTeachers || value.teacherId) {
-        return value;
+      if (!(hasTeachers || value.teacherId)) {
+        return helpers.message({ custom: 'Provide teachers (non-empty array) or legacy teacherId' });
       }
-      return helpers.error('any.custom');
-    })
-    .messages({
-      'any.custom': 'Provide teachers (non-empty array) or legacy teacherId',
+      return assertScheduleTimesBothPresent(value, helpers);
     }),
 };
 
@@ -38,6 +88,8 @@ export const getClasses = {
     teachers: Joi.string().custom(objectId),
     courseId: Joi.string().custom(objectId),
     name: Joi.string(),
+    branch: Joi.string().valid(...BRANCH_QUERY_VALUES),
+    academicYear: Joi.string(),
     sortBy: Joi.string(),
     projectBy: Joi.string(),
     limit: Joi.number().integer(),
@@ -80,8 +132,19 @@ export const updateClasses = {
       teacherId: Joi.string().custom(objectId),
       courseId: Joi.string().custom(objectId),
       students: Joi.array().items(Joi.string().custom(objectId)),
+      studentsInClass: Joi.array()
+        .items(
+          Joi.object({
+            user: Joi.string().custom(objectId).required(),
+            course: Joi.string().custom(objectId).required(),
+          })
+        )
+        .optional(),
+      ...optionalMetaFields,
+      ...scheduleDefaultsFields,
     })
-    .min(1),
+    .min(1)
+    .custom((value, helpers) => assertScheduleTimesIfBothInPayload(value, helpers)),
 };
 
 export const deleteClasses = {

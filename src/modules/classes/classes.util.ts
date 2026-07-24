@@ -46,3 +46,39 @@ export function isDefaultTimeRangeValid(startTime?: string, endTime?: string): b
   if (start == null || end == null) return false;
   return start < end;
 }
+
+export function getUniqueStudentCount(classLike: {
+  students?: Array<mongoose.Types.ObjectId | string | { _id?: mongoose.Types.ObjectId }> | undefined;
+  studentsInClass?:
+    | Array<{ user: mongoose.Types.ObjectId | string | { _id?: mongoose.Types.ObjectId } }>
+    | undefined;
+}): number {
+  const ids = new Set<string>();
+  for (const s of classLike.students ?? []) {
+    const id = s && typeof s === 'object' && '_id' in s && s._id != null ? s._id : s;
+    if (id) ids.add(id.toString());
+  }
+  for (const entry of classLike.studentsInClass ?? []) {
+    const u = entry.user;
+    const id = u && typeof u === 'object' && '_id' in u && u._id != null ? u._id : u;
+    if (id) ids.add(id.toString());
+  }
+  return ids.size;
+}
+
+/** Prefer unique studentsInClass; fall back to students[] */
+export function getEnrolledStudentCount(classLike: {
+  students?: Array<mongoose.Types.ObjectId | string | { _id?: mongoose.Types.ObjectId }> | undefined;
+  studentsInClass?:
+    | Array<{ user: mongoose.Types.ObjectId | string | { _id?: mongoose.Types.ObjectId } }>
+    | undefined;
+}): number {
+  const fromInClass = new Set<string>();
+  for (const entry of classLike.studentsInClass ?? []) {
+    const u = entry.user;
+    const id = u && typeof u === 'object' && '_id' in u && u._id != null ? u._id : u;
+    if (id) fromInClass.add(id.toString());
+  }
+  if (fromInClass.size > 0) return fromInClass.size;
+  return getUniqueStudentCount({ students: classLike.students });
+}

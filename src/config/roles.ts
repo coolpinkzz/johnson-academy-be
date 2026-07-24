@@ -25,6 +25,8 @@ const allRoles = {
     'uploadFiles',
     'updateProfile',
     'getAssignments',
+    'getCompensationBookings',
+    'manageCompensationBookings',
   ],
   teacher: [
     'getStudents',
@@ -45,6 +47,8 @@ const allRoles = {
     'uploadFiles',
     'updateProfile',
     'getAssignments',
+    'getCompensationBookings',
+    'manageCompensationBookings',
   ],
   student: [
     'getStudents',
@@ -61,6 +65,8 @@ const allRoles = {
     'uploadFiles',
     'updateProfile',
     'getAssignments',
+    'getCompensationBookings',
+    'manageCompensationBookings',
   ],
 };
 

@@ -15,6 +15,7 @@ import pdfRoute from './pdf.route';
 import assignmentRoute from './assignment.route';
 import dashboardRoute from './dashboard.route';
 import appVersionRoute from './appVersion.route';
+import compensationRoute from './compensation.route';
 const router = express.Router();
 
 interface IRoute {
@@ -78,6 +79,10 @@ const defaultIRoute: IRoute[] = [
   {
     path: '/app-version',
     route: appVersionRoute,
+  },
+  {
+    path: '/compensation',
+    route: compensationRoute,
   },
 ];
 

@@ -102,3 +102,18 @@ export const markAttendanceAbsent = catchAsync(async (req: Request, res: Respons
     res.send(attendance);
   }
 });
+
+export const clearAttendanceForDate = catchAsync(async (req: Request, res: Response) => {
+  const { attendanceId } = req.params;
+  const { studentId, classId, date } = req.body;
+
+  if (typeof attendanceId === 'string') {
+    const attendance = await studentAttendanceService.clearAttendanceForDate(
+      new mongoose.Types.ObjectId(attendanceId),
+      new mongoose.Types.ObjectId(studentId),
+      new mongoose.Types.ObjectId(classId),
+      new Date(date)
+    );
+    res.send(attendance);
+  }
+});

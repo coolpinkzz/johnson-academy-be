@@ -185,3 +185,52 @@ export const markAttendanceAbsent = async (
   await attendance.save();
   return attendance;
 };
+
+/**
+ * Clear student attendance for a specific date (remove from present and absent)
+ * @param {mongoose.Types.ObjectId} attendanceId
+ * @param {mongoose.Types.ObjectId} studentId
+ * @param {mongoose.Types.ObjectId} classId
+ * @param {Date} date
+ * @returns {Promise<IStudentAttendanceDoc | null>}
+ */
+export const clearAttendanceForDate = async (
+  attendanceId: mongoose.Types.ObjectId,
+  studentId: mongoose.Types.ObjectId,
+  classId: mongoose.Types.ObjectId,
+  date: Date
+): Promise<IStudentAttendanceDoc | null> => {
+  const attendance = await getStudentAttendanceById(attendanceId);
+  if (!attendance) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Student attendance record not found');
+  }
+
+  if (
+    attendance.studentId._id.toString() !== studentId.toString() ||
+    attendance.classId._id.toString() !== classId.toString()
+  ) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Attendance record does not match the specified student and class');
+  }
+
+  const isPresent = attendance.presentDates.some((presentDate) => presentDate.toDateString() === date.toDateString());
+  const isAbsent = attendance.absentDates.some((absentDate) => absentDate.toDateString() === date.toDateString());
+
+  if (!isPresent && !isAbsent) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'No attendance marked for this date to clear');
+  }
+
+  attendance.presentDates = attendance.presentDates.filter(
+    (presentDate) => presentDate.toDateString() !== date.toDateString()
+  );
+  attendance.absentDates = attendance.absentDates.filter((absentDate) => absentDate.toDateString() !== date.toDateString());
+
+  const remainingDates = [...attendance.presentDates, ...attendance.absentDates];
+  if (remainingDates.length === 0) {
+    attendance.set('lastDate', undefined);
+  } else {
+    attendance.lastDate = new Date(Math.max(...remainingDates.map((d) => d.getTime())));
+  }
+
+  await attendance.save();
+  return attendance;
+};

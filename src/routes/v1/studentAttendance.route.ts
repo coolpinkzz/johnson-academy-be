@@ -71,6 +71,14 @@ router
     studentAttendanceController.markAttendanceAbsent
   );
 
+router
+  .route('/:attendanceId/clear')
+  .post(
+    auth('manageAttendance'),
+    validate(studentAttendanceValidation.clearAttendanceForDate),
+    studentAttendanceController.clearAttendanceForDate
+  );
+
 export default router;
 
 /**
@@ -469,4 +477,58 @@ export default router;
  *         $ref: '#/components/responses/NotFound'
  *       "409":
  *         description: Conflict - Attendance already marked for this date
+ */
+
+/**
+ * @swagger
+ * /student-attendance/{id}/clear:
+ *   post:
+ *     summary: Clear student attendance for a date
+ *     description: Remove present/absent mark for a specific date. Only authorized users can clear attendance.
+ *     tags: [StudentAttendance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Attendance record ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studentId
+ *               - classId
+ *               - date
+ *             properties:
+ *               studentId:
+ *                 type: string
+ *                 description: Student ID
+ *               classId:
+ *                 type: string
+ *                 description: Class ID
+ *               date:
+ *                 type: string
+ *                 format: date
+ *                 description: Date to clear attendance for
+ *     responses:
+ *       "200":
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *                $ref: '#/components/schemas/StudentAttendance'
+ *       "400":
+ *         description: Bad request - No attendance marked for this date or record mismatch
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  */

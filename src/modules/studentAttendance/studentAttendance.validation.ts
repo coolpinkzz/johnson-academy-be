@@ -95,3 +95,14 @@ export const markAttendanceAbsent = {
     date: Joi.date().required(),
   }),
 };
+
+export const clearAttendanceForDate = {
+  params: Joi.object().keys({
+    attendanceId: Joi.string().custom(objectId).required(),
+  }),
+  body: Joi.object().keys({
+    studentId: Joi.string().custom(objectId).required(),
+    classId: Joi.string().custom(objectId).required(),
+    date: Joi.date().required(),
+  }),
+};

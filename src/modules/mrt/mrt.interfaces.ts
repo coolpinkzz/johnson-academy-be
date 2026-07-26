@@ -6,12 +6,12 @@ export interface IMRT {
   classId: mongoose.Types.ObjectId;
   studentId: mongoose.Types.ObjectId;
   courseId: mongoose.Types.ObjectId;
-  sptAndFileSubmission: number;
   regularity: number;
   learningSpeed: number;
-  songLearning: number;
-  assignment: number;
-  theoryAndTechnicals: number;
+  theory: number;
+  technicalExercises: number;
+  repertoireRhythmSense: number;
+  repertoireDynamics: number;
   totalScore?: number;
   averageScore?: number;
   remarks?: string;
@@ -36,12 +36,12 @@ export interface IMRTModel extends Model<IMRTDoc> {
 }
 
 export interface IMRTUpdateBody {
-  sptAndFileSubmission?: number;
   regularity?: number;
   learningSpeed?: number;
-  songLearning?: number;
-  assignment?: number;
-  theoryAndTechnicals?: number;
+  theory?: number;
+  technicalExercises?: number;
+  repertoireRhythmSense?: number;
+  repertoireDynamics?: number;
   remarks?: string;
 }
 
@@ -50,11 +50,11 @@ export interface IMRTCreateBody {
   classId: string;
   studentId: string;
   courseId: string;
-  sptAndFileSubmission: number;
   regularity: number;
   learningSpeed: number;
-  songLearning: number;
-  assignment: number;
-  theoryAndTechnicals: number;
+  theory: number;
+  technicalExercises: number;
+  repertoireRhythmSense: number;
+  repertoireDynamics: number;
   remarks?: string;
 }

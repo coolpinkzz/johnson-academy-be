@@ -23,12 +23,12 @@ export interface AttendanceData {
   joiningDate: string;
   month: string;
   mrtData?: {
-    sptAndFileSubmission: number;
     regularity: number;
     learningSpeed: number;
-    songLearning: number;
-    assignment: number;
-    theoryAndTechnicals: number;
+    theory: number;
+    technicalExercises: number;
+    repertoireRhythmSense: number;
+    repertoireDynamics: number;
     totalScore?: number;
     averageScore?: number;
     remarks?: string;
@@ -227,13 +227,13 @@ export class PDFService {
 
       // MRT data
       const mrtDetails = [
-        { label: 'SPT & File Submission', value: data.mrtData.sptAndFileSubmission },
-        { label: 'Regularity', value: data.mrtData.regularity },
-        { label: 'Learning Speed', value: data.mrtData.learningSpeed },
-        { label: 'Song Learning', value: data.mrtData.songLearning },
-        { label: 'Assignment', value: data.mrtData.assignment },
-        { label: 'Theory & Technical', value: data.mrtData.theoryAndTechnicals },
-        { label: 'Total Score', value: data.mrtData.totalScore },
+        { label: 'Regularity (5M)', value: data.mrtData.regularity },
+        { label: 'Learning Speed (5M)', value: data.mrtData.learningSpeed },
+        { label: 'Theory (5M)', value: data.mrtData.theory },
+        { label: 'Technical Exercises (5M)', value: data.mrtData.technicalExercises },
+        { label: 'Repertoire (Rhythm Sense) (5M)', value: data.mrtData.repertoireRhythmSense },
+        { label: 'Repertoire (Dynamics) (5M)', value: data.mrtData.repertoireDynamics },
+        { label: 'Total Marks (30M)', value: data.mrtData.totalScore },
       ];
 
       // Calculate total table height

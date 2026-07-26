@@ -3,6 +3,17 @@ import toJSON from '../toJSON/toJSON';
 import paginate from '../paginate/paginate';
 import { IMRTDoc, IMRTModel } from './mrt.interfaces';
 
+const scoreField = (message: string) => ({
+  type: Number,
+  required: true,
+  min: 2,
+  max: 5,
+  validate: {
+    validator: Number.isInteger,
+    message,
+  },
+});
+
 const mrtSchema = new mongoose.Schema<IMRTDoc, IMRTModel>(
   {
     month: {
@@ -33,77 +44,23 @@ const mrtSchema = new mongoose.Schema<IMRTDoc, IMRTModel>(
       required: true,
       ref: 'Course',
     },
-    sptAndFileSubmission: {
-      type: Number,
-      required: true,
-      min: 0,
-      max: 5,
-      validate: {
-        validator: Number.isInteger,
-        message: 'SPT & File Submission must be an integer',
-      },
-    },
-    regularity: {
-      type: Number,
-      required: true,
-      min: 0,
-      max: 5,
-      validate: {
-        validator: Number.isInteger,
-        message: 'Regularity must be an integer',
-      },
-    },
-    learningSpeed: {
-      type: Number,
-      required: true,
-      min: 0,
-      max: 5,
-      validate: {
-        validator: Number.isInteger,
-        message: 'Learning Speed must be an integer',
-      },
-    },
-    songLearning: {
-      type: Number,
-      required: true,
-      min: 0,
-      max: 5,
-      validate: {
-        validator: Number.isInteger,
-        message: 'Song Learning must be an integer',
-      },
-    },
-    assignment: {
-      type: Number,
-      required: true,
-      min: 0,
-      max: 5,
-      validate: {
-        validator: Number.isInteger,
-        message: 'Assignment must be an integer',
-      },
-    },
-    theoryAndTechnicals: {
-      type: Number,
-      required: true,
-      min: 0,
-      max: 5,
-      validate: {
-        validator: Number.isInteger,
-        message: 'Theory and Technical must be an integer',
-      },
-    },
+    regularity: scoreField('Regularity must be an integer'),
+    learningSpeed: scoreField('Learning Speed must be an integer'),
+    theory: scoreField('Theory must be an integer'),
+    technicalExercises: scoreField('Technical Exercises must be an integer'),
+    repertoireRhythmSense: scoreField('Repertoire (Rhythm Sense) must be an integer'),
+    repertoireDynamics: scoreField('Repertoire (Dynamics) must be an integer'),
     totalScore: {
       type: Number,
-      min: 0,
+      min: 12,
       max: 30,
-      default: 0,
+      default: 12,
     },
     averageScore: {
       type: Number,
-      min: 0,
+      min: 2,
       max: 5,
-      default: 0,
+      default: 2,
     },
     remarks: {
       type: String,
@@ -130,20 +87,20 @@ mrtSchema.index({ month: 1, classId: 1, studentId: 1, courseId: 1 }, { unique: t
 // Pre-save middleware to calculate total and average scores
 mrtSchema.pre('save', function (this: any, next) {
   if (
-    this.isModified('sptAndFileSubmission') ||
     this.isModified('regularity') ||
     this.isModified('learningSpeed') ||
-    this.isModified('songLearning') ||
-    this.isModified('assignment') ||
-    this.isModified('theoryAndTechnicals')
+    this.isModified('theory') ||
+    this.isModified('technicalExercises') ||
+    this.isModified('repertoireRhythmSense') ||
+    this.isModified('repertoireDynamics')
   ) {
     this.totalScore =
-      this.sptAndFileSubmission +
       this.regularity +
       this.learningSpeed +
-      this.songLearning +
-      this.assignment +
-      this.theoryAndTechnicals;
+      this.theory +
+      this.technicalExercises +
+      this.repertoireRhythmSense +
+      this.repertoireDynamics;
     this.averageScore = Math.round(this.totalScore / 6);
   }
   next();

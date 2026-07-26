@@ -92,12 +92,12 @@ export class PDFController {
         month: moment(month as string).format('MMM YYYY'),
         mrtData: mrtData
           ? {
-              sptAndFileSubmission: mrtData.sptAndFileSubmission,
               regularity: mrtData.regularity,
               learningSpeed: mrtData.learningSpeed,
-              songLearning: mrtData.songLearning,
-              assignment: mrtData.assignment,
-              theoryAndTechnicals: mrtData.theoryAndTechnicals,
+              theory: mrtData.theory,
+              technicalExercises: mrtData.technicalExercises,
+              repertoireRhythmSense: mrtData.repertoireRhythmSense,
+              repertoireDynamics: mrtData.repertoireDynamics,
               totalScore: mrtData.totalScore,
               averageScore: mrtData.averageScore,
               remarks: mrtData.remarks,

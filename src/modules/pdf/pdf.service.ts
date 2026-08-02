@@ -36,6 +36,8 @@ export interface AttendanceData {
 }
 
 export class PDFService {
+  private static readonly PAGE_BOTTOM_PADDING = 40;
+
   /**
    * Find logo file in various possible locations
    */
@@ -57,20 +59,54 @@ export class PDFService {
   }
 
   /**
+   * Remaining usable vertical space on the current page.
+   */
+  private static remainingPageSpace(doc: PDFKit.PDFDocument): number {
+    return doc.page.height - doc.page.margins.bottom - doc.y;
+  }
+
+  /**
+   * Start a new page when the requested height will not fit.
+   */
+  private static ensureSpace(doc: PDFKit.PDFDocument, neededHeight: number): void {
+    if (this.remainingPageSpace(doc) < neededHeight + this.PAGE_BOTTOM_PADDING) {
+      doc.addPage();
+    }
+  }
+
+  /**
+   * Draw text at an absolute position without advancing the document cursor.
+   * Callers should ensureSpace() first so PDFKit does not auto-insert blank pages.
+   */
+  private static drawFixedText(
+    doc: PDFKit.PDFDocument,
+    text: string,
+    x: number,
+    y: number,
+    options: PDFKit.Mixins.TextOptions = {}
+  ): void {
+    const previousX = doc.x;
+    const previousY = doc.y;
+    doc.text(text, x, y, options);
+    doc.x = previousX;
+    doc.y = previousY;
+  }
+
+  /**
    * Generate attendance PDF
    */
-  static generateAttendancePDF(data: AttendanceData): any {
+  static generateAttendancePDF(data: AttendanceData): PDFKit.PDFDocument {
     console.log('Generating attendance PDF for student:', data);
 
     const { studentDetails: student, classDetails: classId, courseDetails: courseId, joiningDate, month } = data;
-    const doc = new PDFDocument({ margin: 40 }) as any;
+    const doc = new PDFDocument({ margin: 40, size: 'A4' }) as PDFKit.PDFDocument;
 
     // Add logo at the top center
     const logoPath = this.findLogoFile();
     if (logoPath) {
       try {
-        doc.image(logoPath, 250, 40, { width: 80, height: 80, align: 'center' });
-        doc.moveDown(7);
+        doc.image(logoPath, 250, 40, { width: 80, height: 80 });
+        doc.y = 130;
         console.log('Logo loaded successfully from:', logoPath);
       } catch (error) {
         console.log('Error loading logo:', error);
@@ -81,7 +117,7 @@ export class PDFService {
       doc.moveDown(1);
     }
 
-    doc.fontSize(18).fillColor('#1a4e8a').text(`Monthly Report Card - ${month}`, { align: 'center' });
+    doc.fontSize(18).fillColor('#1a4e8a').text(`Students Monthly Progress Report - ${month}`, { align: 'center' });
     doc.moveDown(1);
 
     doc.fontSize(12).fillColor('#333333');
@@ -95,7 +131,6 @@ export class PDFService {
     const studentRowHeight = 25;
     let studentCurrentY = doc.y;
 
-    // Student details data (hardcoded for now)
     const studentDetails = [
       { label: 'Name', value: student.name },
       { label: 'Email', value: student.email },
@@ -104,75 +139,69 @@ export class PDFService {
       { label: 'Date of Joining', value: moment(joiningDate).format('DD MMM YYYY') },
     ];
 
-    // Create student details table
-    studentDetails.forEach((detail, _index) => {
+    this.ensureSpace(doc, studentDetails.length * studentRowHeight);
+
+    studentDetails.forEach((detail) => {
       const rowY = studentCurrentY;
 
-      // Draw row border
       doc.rect(studentTableStartX, rowY, studentTableEndX - studentTableStartX, studentRowHeight).stroke();
-
-      // Draw vertical line between columns
       doc
         .moveTo(studentTableStartX + labelColWidth, rowY)
         .lineTo(studentTableStartX + labelColWidth, rowY + studentRowHeight)
         .stroke();
 
-      // Add label text
-      doc.text(detail.label, studentTableStartX + 10, rowY + 8, { width: labelColWidth - 20 });
-
-      // Add value text
-      doc.text(detail.value, studentTableStartX + labelColWidth + 10, rowY + 8, { width: valueColWidth - 20 });
+      this.drawFixedText(doc, detail.label, studentTableStartX + 10, rowY + 8, {
+        width: labelColWidth - 20,
+      });
+      this.drawFixedText(doc, detail.value, studentTableStartX + labelColWidth + 10, rowY + 8, {
+        width: valueColWidth - 20,
+      });
 
       studentCurrentY += studentRowHeight;
     });
 
-    doc.y = studentCurrentY; // Update doc.y to the end of the student table
+    doc.y = studentCurrentY;
+    doc.x = studentTableStartX;
     doc.moveDown(1);
 
-    // Title
-    // doc.fontSize(16).fillColor('#1a4e8a').text(`Class Attendance & Sessions - ${month}`);
-    // doc.moveDown(1);
-
-    // Table headers
     doc.fontSize(12).fillColor('black');
 
-    // Define table dimensions
     const tableStartX = 50;
     const tableEndX = 550;
     const dateColWidth = 250;
     const sessionColWidth = 250;
+    const sessionHeaderHeight = 20;
+
+    this.ensureSpace(doc, sessionHeaderHeight + 28);
+
     const headerY = doc.y;
 
-    // Draw table border
-    doc.rect(tableStartX, headerY, tableEndX - tableStartX, 20).stroke();
-
-    // Draw vertical line between columns
+    doc.rect(tableStartX, headerY, tableEndX - tableStartX, sessionHeaderHeight).stroke();
     doc
       .moveTo(tableStartX + dateColWidth, headerY)
-      .lineTo(tableStartX + dateColWidth, headerY + 20)
+      .lineTo(tableStartX + dateColWidth, headerY + sessionHeaderHeight)
       .stroke();
 
-    // Add header text
-    doc.text('Date', tableStartX + 10, headerY + 5, { width: dateColWidth - 20 });
-    doc.text('Session Details', tableStartX + dateColWidth + 10, headerY + 5, { width: sessionColWidth - 20 });
+    this.drawFixedText(doc, 'Date', tableStartX + 10, headerY + 5, { width: dateColWidth - 20 });
+    this.drawFixedText(doc, 'Session Details', tableStartX + dateColWidth + 10, headerY + 5, {
+      width: sessionColWidth - 20,
+    });
 
-    doc.moveDown(0.5);
+    doc.y = headerY + sessionHeaderHeight;
+    doc.x = tableStartX;
 
-    // Combine and sort all dates
     const allDates = [
-      ...data.presentDates.map((date) => ({ date, type: 'present' })),
-      ...data.absentDates.map((date) => ({ date, type: 'absent' })),
+      ...data.presentDates.map((date) => ({ date, type: 'present' as const })),
+      ...data.absentDates.map((date) => ({ date, type: 'absent' as const })),
     ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    // Loop over all dates to create table rows
-    allDates.forEach((dateInfo, _index) => {
+    allDates.forEach((dateInfo) => {
       const date = moment(dateInfo.date).format('dddd, DD MMMM YYYY');
       const isPresent = dateInfo.type === 'present';
 
       let sessionDetails = 'Absent';
 
       if (isPresent) {
-        // Find modules active on that date
         const activeModules = data.syllabusModules.filter((m) => {
           const start = m.startDate ? moment(m.startDate) : null;
           const end = m.endDate ? moment(m.endDate) : null;
@@ -181,11 +210,9 @@ export class PDFService {
           return start && d.isSameOrAfter(start, 'day') && (!end || d.isSameOrBefore(end, 'day'));
         });
 
-        // Map module titles
         sessionDetails = activeModules.length > 0 ? activeModules.map((m) => m.moduleId.title).join(', ') : '-';
       }
 
-      const rowY = doc.y;
       const cellPadding = 8;
       const dateTextWidth = dateColWidth - 20;
       const sessionTextWidth = sessionColWidth - 20;
@@ -194,38 +221,34 @@ export class PDFService {
       const sessionTextHeight = doc.heightOfString(sessionDetails, { width: sessionTextWidth });
       const rowHeight = Math.max(28, Math.max(dateTextHeight, sessionTextHeight) + cellPadding * 2);
 
-      doc.rect(tableStartX, rowY, tableEndX - tableStartX, rowHeight).stroke();
+      this.ensureSpace(doc, rowHeight);
 
+      const rowY = doc.y;
+
+      doc.rect(tableStartX, rowY, tableEndX - tableStartX, rowHeight).stroke();
       doc
         .moveTo(tableStartX + dateColWidth, rowY)
         .lineTo(tableStartX + dateColWidth, rowY + rowHeight)
         .stroke();
 
-      doc.text(date, tableStartX + 10, rowY + cellPadding, { width: dateTextWidth });
-      doc.text(sessionDetails, tableStartX + dateColWidth + 10, rowY + cellPadding, {
+      this.drawFixedText(doc, date, tableStartX + 10, rowY + cellPadding, { width: dateTextWidth });
+      this.drawFixedText(doc, sessionDetails, tableStartX + dateColWidth + 10, rowY + cellPadding, {
         width: sessionTextWidth,
       });
 
       doc.y = rowY + rowHeight;
+      doc.x = tableStartX;
     });
 
-    // Add MRT data table if available
     if (data.mrtData) {
       doc.moveDown(1);
 
-      // MRT Title
-      // doc.fontSize(16).fillColor('#1a4e8a').text('Monthly Report & Tracking (MRT)', { align: 'left' });
-      // doc.moveDown(1);
-
-      // Define MRT table dimensions
       const mrtTableStartX = 50;
       const mrtTableEndX = 550;
       const mrtLabelColWidth = 400;
       const mrtScoreColWidth = 100;
       const mrtRowHeight = 25;
-      let mrtCurrentY = doc.y;
 
-      // MRT data
       const mrtDetails = [
         { label: 'Regularity (5M)', value: data.mrtData.regularity },
         { label: 'Learning Speed (5M)', value: data.mrtData.learningSpeed },
@@ -236,23 +259,23 @@ export class PDFService {
         { label: 'Total Marks (30M)', value: data.mrtData.totalScore },
       ];
 
-      // Calculate total table height
       const totalTableHeight = mrtDetails.length * mrtRowHeight;
+      const remarksHeight = data.mrtData.remarks ? 60 : 0;
 
-      // Draw the main table border (single rectangle for the entire table)
+      // Keep the whole MRT block on one page so rows are not split across blank pages
+      this.ensureSpace(doc, totalTableHeight + remarksHeight);
+
+      const mrtCurrentY = doc.y;
+
       doc.rect(mrtTableStartX, mrtCurrentY, mrtTableEndX - mrtTableStartX, totalTableHeight).stroke();
-
-      // Draw vertical line between columns (single line for the entire table)
       doc
         .moveTo(mrtTableStartX + mrtLabelColWidth, mrtCurrentY)
         .lineTo(mrtTableStartX + mrtLabelColWidth, mrtCurrentY + totalTableHeight)
         .stroke();
 
-      // Draw horizontal lines between rows and add content
       mrtDetails.forEach((detail, index) => {
         const rowY = mrtCurrentY + index * mrtRowHeight;
 
-        // Draw horizontal line between rows (except for the last row)
         if (index < mrtDetails.length - 1) {
           doc
             .moveTo(mrtTableStartX, rowY + mrtRowHeight)
@@ -260,34 +283,24 @@ export class PDFService {
             .stroke();
         }
 
-        // Add label text
-        doc
-          .fontSize(12)
-          .fillColor('#1a4e8a')
-          .text(detail.label, mrtTableStartX + 10, rowY + 8, { width: mrtLabelColWidth - 20 });
-
-        // Add score text (centered)
-        doc
-          .fontSize(12)
-          .fillColor('#1a4e8a')
-          .text(detail?.value?.toString(), mrtTableStartX + mrtLabelColWidth + 10, rowY + 8, {
-            width: mrtScoreColWidth - 20,
-            align: 'center',
-          });
+        doc.fontSize(12).fillColor('#1a4e8a');
+        this.drawFixedText(doc, detail.label, mrtTableStartX + 10, rowY + 8, {
+          width: mrtLabelColWidth - 20,
+        });
+        this.drawFixedText(doc, detail.value?.toString() ?? '', mrtTableStartX + mrtLabelColWidth + 10, rowY + 8, {
+          width: mrtScoreColWidth - 20,
+          align: 'center',
+        });
       });
 
-      // Update current Y position to the end of the table
       doc.y = mrtCurrentY + totalTableHeight;
       doc.x = mrtTableStartX;
 
-      // Add remarks if available
       if (data.mrtData.remarks) {
         doc.moveDown(1);
         doc.fontSize(12).fillColor('#1a4e8a').text('Remarks:');
-        doc.fontSize(10).fillColor('black').text(data.mrtData.remarks);
+        doc.fontSize(12).fillColor('black').text(data.mrtData.remarks);
       }
-
-      // doc.y = mrtCurrentY; // Update doc.y to the end of the MRT table
     }
 
     return doc;

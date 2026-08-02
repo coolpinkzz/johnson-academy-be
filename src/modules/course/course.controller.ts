@@ -6,11 +6,14 @@ import ApiError from '../errors/ApiError';
 import pick from '../utils/pick';
 import { IOptions } from '../paginate/paginate';
 import * as courseService from './course.service';
+import { contentManagerRoles } from '../../config/roles';
+
+const canManageContent = (role?: string): boolean =>
+  !!role && (contentManagerRoles as readonly string[]).includes(role);
 
 export const createCourse = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can create courses
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can create courses');
+  if (req.user && !canManageContent(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin, aqsd, or master can create courses');
   }
 
   const course = await courseService.createCourse(req.body);
@@ -35,9 +38,8 @@ export const getCourse = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const updateCourse = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can update courses
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can update courses');
+  if (req.user && !canManageContent(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin, aqsd, or master can update courses');
   }
 
   if (typeof req.params['courseId'] === 'string') {
@@ -47,9 +49,8 @@ export const updateCourse = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const deleteCourse = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can delete courses
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can delete courses');
+  if (req.user && !canManageContent(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin, aqsd, or master can delete courses');
   }
 
   if (typeof req.params['courseId'] === 'string') {
@@ -64,9 +65,8 @@ export const deleteCourse = catchAsync(async (req: Request, res: Response) => {
 // });
 
 export const addSyllabusToCourse = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can add syllabus
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can add syllabus to courses');
+  if (req.user && !canManageContent(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin, aqsd, or master can add syllabus to courses');
   }
 
   const { courseId, syllabusId } = req.params;
@@ -80,9 +80,8 @@ export const addSyllabusToCourse = catchAsync(async (req: Request, res: Response
 });
 
 export const removeSyllabusFromCourse = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can remove syllabus
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can remove syllabus from courses');
+  if (req.user && !canManageContent(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin, aqsd, or master can remove syllabus from courses');
   }
 
   const { courseId, syllabusId } = req.params;

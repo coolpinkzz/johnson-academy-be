@@ -8,6 +8,8 @@ export interface IUser {
   password: string;
   role: string;
   rollNumber?: string;
+  /** Staff-only: branch ids (1–12) whose students this user may access via rollNumber */
+  branchAccess?: number[];
   isEmailVerified: boolean;
   // Academy-specific fields
   studentId?: string;

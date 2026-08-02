@@ -6,7 +6,7 @@ import { resolveClassTeacherIds } from '../classes/classes.util';
 import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedUser, UpdateUserBody, IUserDoc, NewRegisteredUser } from './user.interfaces';
-import { buildBranchRollNumberFilter, buildRollNumberSearchFilter } from './rollNumber.util';
+import { buildBranchRollNumberFilter, buildRollNumberSearchFilter, buildBranchAccessRollNumberOr } from './rollNumber.util';
 
 /**
  * Create a user
@@ -37,7 +37,13 @@ export const createUser = async (userBody: NewCreatedUser): Promise<IUserDoc> =>
     }
   }
 
-  return User.create(userBody);
+  // branchAccess only applies to admin/aqsd
+  const payload = { ...userBody };
+  if (!['admin', 'aqsd'].includes(payload.role)) {
+    delete payload.branchAccess;
+  }
+
+  return User.create(payload);
 };
 
 /**
@@ -88,7 +94,9 @@ export const queryUsers = async (filter: Record<string, any>, options: IOptions)
   // Transform the filter to handle partial name matching
   const transformedFilter = { ...filter };
   const branch = transformedFilter['branch'];
+  const branchIn = transformedFilter['branchIn'] as string[] | undefined;
   delete transformedFilter['branch'];
+  delete transformedFilter['branchIn'];
 
   if (transformedFilter['name']) {
     // Convert name filter to case-insensitive regex for partial matching
@@ -96,6 +104,9 @@ export const queryUsers = async (filter: Record<string, any>, options: IOptions)
   }
 
   const rollNumberFilters: Array<{ $regex: string; $options: string }> = [];
+  const andClauses: Record<string, unknown>[] = Array.isArray(transformedFilter['$and'])
+    ? [...transformedFilter['$and']]
+    : [];
 
   if (transformedFilter['rollNumber']) {
     rollNumberFilters.push(buildRollNumberSearchFilter(String(transformedFilter['rollNumber'])));
@@ -109,13 +120,30 @@ export const queryUsers = async (filter: Record<string, any>, options: IOptions)
     }
   }
 
+  if (Array.isArray(branchIn)) {
+    if (branchIn.length === 0) {
+      // No accessible branches → empty result set
+      transformedFilter['_id'] = { $in: [] };
+    } else {
+      const branchOr = buildBranchAccessRollNumberOr(branchIn);
+      if (branchOr.length === 0) {
+        transformedFilter['_id'] = { $in: [] };
+      } else if (branchOr.length === 1 && branchOr[0]) {
+        rollNumberFilters.push(branchOr[0].rollNumber);
+      } else {
+        andClauses.push({ $or: branchOr });
+      }
+    }
+  }
+
   if (rollNumberFilters.length === 1) {
     transformedFilter['rollNumber'] = rollNumberFilters[0];
   } else if (rollNumberFilters.length > 1) {
-    transformedFilter['$and'] = [
-      ...(Array.isArray(transformedFilter['$and']) ? transformedFilter['$and'] : []),
-      ...rollNumberFilters.map((rollNumber) => ({ rollNumber })),
-    ];
+    andClauses.push(...rollNumberFilters.map((rollNumber) => ({ rollNumber })));
+  }
+
+  if (andClauses.length > 0) {
+    transformedFilter['$and'] = andClauses;
   }
 
   // If filtering by teacher role, populate courses
@@ -200,7 +228,21 @@ export const updateUserById = async (
     throw new ApiError(httpStatus.BAD_REQUEST, 'Roll number already taken');
   }
 
+  const nextRole = updateBody.role ?? user.role;
+  if (!['admin', 'aqsd'].includes(nextRole)) {
+    delete updateBody.branchAccess;
+  } else if (updateBody.branchAccess !== undefined) {
+    if (!Array.isArray(updateBody.branchAccess) || updateBody.branchAccess.length === 0) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'branchAccess is required for admin and aqsd users');
+    }
+  } else if (['admin', 'aqsd'].includes(nextRole) && (!user.branchAccess || user.branchAccess.length === 0)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'branchAccess is required for admin and aqsd users');
+  }
+
   Object.assign(user, updateBody);
+  if (!['admin', 'aqsd'].includes(nextRole)) {
+    user.set('branchAccess', undefined);
+  }
   await user.save();
   return user;
 };

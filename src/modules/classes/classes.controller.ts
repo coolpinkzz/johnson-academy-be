@@ -6,11 +6,14 @@ import ApiError from '../errors/ApiError';
 import pick from '../utils/pick';
 import { IOptions } from '../paginate/paginate';
 import * as classesService from './classes.service';
+import { classManagerRoles } from '../../config/roles';
+
+const canManageClasses = (role?: string): boolean =>
+  !!role && (classManagerRoles as readonly string[]).includes(role);
 
 export const createClasses = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can create classes
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can create classes');
+  if (req.user && !canManageClasses(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin or master can create classes');
   }
 
   const classes = await classesService.createClasses(req.body);
@@ -56,9 +59,8 @@ export const getClassesByStudent = catchAsync(async (req: Request, res: Response
 });
 
 export const updateClasses = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can update classes
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can update classes');
+  if (req.user && !canManageClasses(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin or master can update classes');
   }
 
   if (typeof req.params['classesId'] === 'string') {
@@ -68,9 +70,8 @@ export const updateClasses = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const deleteClasses = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can delete classes
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can delete classes');
+  if (req.user && !canManageClasses(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin or master can delete classes');
   }
 
   if (typeof req.params['classesId'] === 'string') {
@@ -92,9 +93,8 @@ export const getStudentsByClass = catchAsync(async (req: Request, res: Response)
 });
 
 export const bulkAddStudentsToClass = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can bulk add students to classes
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can bulk add students to classes');
+  if (req.user && !canManageClasses(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin or master can bulk add students to classes');
   }
 
   if (typeof req.params['classesId'] === 'string') {
@@ -154,8 +154,8 @@ export const promoteStudentInClass = catchAsync(async (req: Request, res: Respon
 });
 
 export const removeStudentFromClass = catchAsync(async (req: Request, res: Response) => {
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can remove students from classes');
+  if (req.user && !canManageClasses(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin or master can remove students from classes');
   }
 
   const classesId = req.params['classesId'];

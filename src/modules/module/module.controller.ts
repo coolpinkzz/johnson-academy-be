@@ -6,11 +6,14 @@ import ApiError from '../errors/ApiError';
 import pick from '../utils/pick';
 import { IOptions } from '../paginate/paginate';
 import * as moduleService from './module.service';
+import { contentManagerRoles } from '../../config/roles';
+
+const canManageContent = (role?: string): boolean =>
+  !!role && (contentManagerRoles as readonly string[]).includes(role);
 
 export const createModule = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can create modules
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can create modules');
+  if (req.user && !canManageContent(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin, aqsd, or master can create modules');
   }
 
   const module = await moduleService.createModule(req.body);
@@ -18,9 +21,8 @@ export const createModule = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const createModulesBulk = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can create modules
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can create modules');
+  if (req.user && !canManageContent(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin, aqsd, or master can create modules');
   }
 
   const modules = await moduleService.createModulesBulk(req.body);
@@ -45,9 +47,8 @@ export const getModule = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const updateModule = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can update modules
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can update modules');
+  if (req.user && !canManageContent(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin, aqsd, or master can update modules');
   }
 
   if (typeof req.params['moduleId'] === 'string') {
@@ -57,9 +58,8 @@ export const updateModule = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const deleteModule = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can delete modules
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can delete modules');
+  if (req.user && !canManageContent(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin, aqsd, or master can delete modules');
   }
 
   if (typeof req.params['moduleId'] === 'string') {

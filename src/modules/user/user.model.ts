@@ -61,6 +61,25 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
         message: `${ROLL_NUMBER_ERROR_MESSAGE} and is required for students`,
       },
     },
+    branchAccess: {
+      type: [
+        {
+          type: Number,
+          min: 1,
+          max: 12,
+        },
+      ],
+      default: undefined,
+      validate: {
+        validator: function (this: any, value: number[] | undefined) {
+          if (['admin', 'aqsd'].includes(this.role)) {
+            return Array.isArray(value) && value.length > 0;
+          }
+          return true;
+        },
+        message: 'branchAccess is required for admin and aqsd users',
+      },
+    },
     isEmailVerified: {
       type: Boolean,
       default: false,
@@ -99,12 +118,12 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
       trim: true,
       validate: {
         validator: function (this: any, value: string) {
-          if ((this.role === 'teacher' || this.role === 'admin') && !value) {
+          if (['teacher', 'admin', 'aqsd', 'master'].includes(this.role) && !value) {
             return false;
           }
           return true;
         },
-        message: 'Department is required for teachers and admins',
+        message: 'Department is required for teachers, admins, aqsd, and master',
       },
     },
     gradeLevel: {

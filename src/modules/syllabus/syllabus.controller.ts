@@ -6,11 +6,14 @@ import ApiError from '../errors/ApiError';
 import pick from '../utils/pick';
 import { IOptions } from '../paginate/paginate';
 import * as syllabusService from './syllabus.service';
+import { contentManagerRoles } from '../../config/roles';
+
+const canManageContent = (role?: string): boolean =>
+  !!role && (contentManagerRoles as readonly string[]).includes(role);
 
 export const createSyllabus = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can create syllabi
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can create syllabi');
+  if (req.user && !canManageContent(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin, aqsd, or master can create syllabi');
   }
 
   const syllabus = await syllabusService.createSyllabus(req.body);
@@ -45,9 +48,8 @@ export const getSyllabusByCourse = catchAsync(async (req: Request, res: Response
 });
 
 export const updateSyllabus = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can update syllabi
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can update syllabi');
+  if (req.user && !canManageContent(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin, aqsd, or master can update syllabi');
   }
 
   if (typeof req.params['syllabusId'] === 'string') {
@@ -60,9 +62,8 @@ export const updateSyllabus = catchAsync(async (req: Request, res: Response) => 
 });
 
 export const deleteSyllabus = catchAsync(async (req: Request, res: Response) => {
-  // Check if user is admin - only admins can delete syllabi
-  if (req.user && req.user.role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only admins can delete syllabi');
+  if (req.user && !canManageContent(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin, aqsd, or master can delete syllabi');
   }
 
   if (typeof req.params['syllabusId'] === 'string') {

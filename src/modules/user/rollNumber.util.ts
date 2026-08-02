@@ -76,3 +76,87 @@ export const buildBranchRollNumberFilter = (branch: string): { $regex: string; $
   }
   return { $regex: `\\/${escapeRegex(studentNumberPrefix)}\\d*$`, $options: 'i' };
 };
+
+/**
+ * Extract branch id from a roll number using longest student-number prefix match
+ * (so 1079 → "10", 1143 → "1").
+ */
+export const extractBranchFromRollNumber = (rollNumber: string): string | null => {
+  const match = rollNumber.trim().match(/^JA\/(?:[A-Z]{3}|\d{4})\/(\d+)$/i);
+  if (!match?.[1]) {
+    return null;
+  }
+  const studentNumber = match[1];
+  const prefixes = Object.entries(BRANCH_STUDENT_NUMBER_PREFIXES).sort(
+    (a, b) => b[1].length - a[1].length
+  );
+  for (const [branch, prefix] of prefixes) {
+    if (studentNumber.startsWith(prefix)) {
+      return branch;
+    }
+  }
+  return null;
+};
+
+export type StudentBranchScope = { type: 'all' } | { type: 'none' } | { type: 'branches'; branches: string[] };
+
+const BRANCH_RESTRICTED_ROLES = new Set(['admin', 'aqsd']);
+
+/**
+ * Resolve which student branches an actor may query.
+ * Master (and non-restricted roles) get all; admin/aqsd are limited to branchAccess.
+ */
+export const resolveStudentBranchScope = (
+  actor: { role?: string; branchAccess?: number[] },
+  requestedBranch?: string | null
+): StudentBranchScope => {
+  const requested =
+    requestedBranch != null && String(requestedBranch).trim() !== ''
+      ? String(requestedBranch).trim()
+      : undefined;
+
+  if (!actor.role || !BRANCH_RESTRICTED_ROLES.has(actor.role)) {
+    return requested ? { type: 'branches', branches: [requested] } : { type: 'all' };
+  }
+
+  const allowed = (actor.branchAccess ?? []).map(String).filter((b) => BRANCH_QUERY_VALUES.includes(b));
+  if (allowed.length === 0) {
+    return { type: 'none' };
+  }
+
+  if (requested) {
+    if (!allowed.includes(requested)) {
+      return { type: 'none' };
+    }
+    return { type: 'branches', branches: [requested] };
+  }
+
+  return { type: 'branches', branches: allowed };
+};
+
+export const canAccessStudentRollNumber = (
+  actor: { role?: string; branchAccess?: number[] },
+  rollNumber?: string | null
+): boolean => {
+  if (!actor.role || !BRANCH_RESTRICTED_ROLES.has(actor.role)) {
+    return true;
+  }
+  const allowed = (actor.branchAccess ?? []).map(String);
+  if (allowed.length === 0 || !rollNumber) {
+    return false;
+  }
+  const branch = extractBranchFromRollNumber(rollNumber);
+  return branch != null && allowed.includes(branch);
+};
+
+/**
+ * Mongo $or clauses for rollNumbers matching any of the given branches.
+ */
+export const buildBranchAccessRollNumberOr = (
+  branches: string[]
+): Array<{ rollNumber: { $regex: string; $options: string } }> => {
+  return branches
+    .map((branch) => buildBranchRollNumberFilter(branch))
+    .filter((filter): filter is { $regex: string; $options: string } => filter != null)
+    .map((rollNumber) => ({ rollNumber }));
+};

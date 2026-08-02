@@ -2,16 +2,38 @@ import Joi from 'joi';
 import { password, objectId, rollNumber } from '../validate/custom.validation';
 import { NewCreatedUser } from './user.interfaces';
 import { BRANCH_QUERY_VALUES } from './rollNumber.util';
+import { roles } from '../../config/roles';
+
+const branchAccessNumbers = BRANCH_QUERY_VALUES.map((v) => Number(v));
+
+const branchAccessSchema = Joi.array()
+  .items(Joi.number().integer().valid(...branchAccessNumbers))
+  .unique()
+  .messages({
+    'array.min': 'Select at least one branch',
+    'any.required': 'branchAccess is required for admin and aqsd users',
+  });
 
 const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 'progress' | 'isCompleteProfile'>, any> = {
   email: Joi.string().required().email(),
   password: Joi.string().required().custom(password),
   name: Joi.string().required(),
-  role: Joi.string().required().valid('admin', 'teacher', 'student'),
+  role: Joi.string()
+    .required()
+    .valid(...roles),
   rollNumber: Joi.string().custom(rollNumber).when('role', {
     is: 'student',
     then: Joi.required(),
     otherwise: Joi.optional(),
+  }),
+  branchAccess: Joi.when('role', {
+    is: Joi.valid('admin', 'aqsd'),
+    then: branchAccessSchema.min(1).required(),
+    otherwise: Joi.when('role', {
+      is: 'master',
+      then: branchAccessSchema.optional(),
+      otherwise: Joi.forbidden(),
+    }),
   }),
   studentId: Joi.string().when('role', {
     is: 'student',
@@ -24,7 +46,7 @@ const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 
     otherwise: Joi.forbidden(),
   }),
   department: Joi.string().when('role', {
-    is: Joi.string().valid('teacher', 'admin'),
+    is: Joi.string().valid('teacher', 'admin', 'aqsd', 'master'),
     then: Joi.required(),
     otherwise: Joi.optional(),
   }),
@@ -65,7 +87,7 @@ export const createUser = {
 export const getUsers = {
   query: Joi.object().keys({
     name: Joi.string().allow(''),
-    role: Joi.string().valid('admin', 'teacher', 'student'),
+    role: Joi.string().valid(...roles),
     rollNumber: Joi.string(),
     branch: Joi.string().valid(...BRANCH_QUERY_VALUES),
     department: Joi.string(),
@@ -88,15 +110,18 @@ export const updateUser = {
   params: Joi.object().keys({
     userId: Joi.required().custom(objectId),
   }),
-  // only one object
   body: Joi.object()
     .keys({
       email: Joi.string().email(),
       password: Joi.string().custom(password),
       name: Joi.string(),
+      role: Joi.string().valid('admin', 'aqsd', 'master'),
+      department: Joi.string(),
       rollNumber: Joi.string().custom(rollNumber),
+      branchAccess: branchAccessSchema.min(1),
       profilePicture: Joi.string().uri().allow('').optional(),
-      phoneNumber: Joi.string().pattern(/^\+?[\d\s-()]+$/),
+      phoneNumber: Joi.string().pattern(/^\+?[\d\s-()]+$/).allow(''),
+      isActive: Joi.boolean(),
       isCompleteProfile: Joi.boolean().optional(),
     })
     .min(1),
@@ -110,7 +135,9 @@ export const deleteUser = {
 
 export const getUsersByRole = {
   query: Joi.object().keys({
-    role: Joi.string().required().valid('admin', 'teacher', 'student'),
+    role: Joi.string()
+      .required()
+      .valid(...roles),
   }),
 };
 

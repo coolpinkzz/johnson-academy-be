@@ -7,6 +7,7 @@ import { findNextLevelCourse } from '../course/course.service';
 import StudentProgress from '../studentProgress/studentProgress.model';
 import StudentAttendance from '../studentAttendance/studentAttendance.model';
 import MRT from '../mrt/mrt.model';
+import StudentPromotion from '../studentPromotion/studentPromotion.model';
 import ApiError from '../errors/ApiError';
 import {
   createStudentPromotion,
@@ -932,6 +933,265 @@ export const removeStudentCourseFromClass = async (
     await session.commitTransaction();
 
     return Classes.findById(classesId).populate('teachers').populate('courseId').populate('students');
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+
+/**
+ * Transfer a student (all course enrollments) from one class to another.
+ * Preserves StudentProgress by updating classId; migrates attendance, MRT, and promotions.
+ */
+export const transferStudentToClass = async (
+  fromClassId: mongoose.Types.ObjectId,
+  studentId: mongoose.Types.ObjectId,
+  targetClassId: mongoose.Types.ObjectId
+): Promise<{
+  studentId: mongoose.Types.ObjectId;
+  fromClassId: mongoose.Types.ObjectId;
+  targetClassId: mongoose.Types.ObjectId;
+  movedCourses: mongoose.Types.ObjectId[];
+  progressCount: number;
+  attendanceMigrated: boolean;
+}> => {
+  if (fromClassId.equals(targetClassId)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Source and target class must be different');
+  }
+
+  const sourceClass = await getClassesById(fromClassId);
+  if (!sourceClass) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Source class not found');
+  }
+
+  const targetClass = await getClassesById(targetClassId);
+  if (!targetClass) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Target class not found');
+  }
+
+  const student = await User.findById(studentId);
+  if (!student) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Student not found');
+  }
+  if (student.role !== 'student') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'User must be a student');
+  }
+
+  const isInSource =
+    (sourceClass.students ?? []).some(
+      (s) => getObjectId(s as mongoose.Types.ObjectId)?.toString() === studentId.toString()
+    ) ||
+    (sourceClass.studentsInClass ?? []).some(
+      (entry) => getObjectId(entry.user as mongoose.Types.ObjectId)?.toString() === studentId.toString()
+    );
+
+  const sourceProgress = await StudentProgress.find({ studentId, classId: fromClassId }).lean();
+
+  if (!isInSource && sourceProgress.length === 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Student is not enrolled in the source class');
+  }
+
+  const alreadyInTarget =
+    (targetClass.students ?? []).some(
+      (s) => getObjectId(s as mongoose.Types.ObjectId)?.toString() === studentId.toString()
+    ) ||
+    (targetClass.studentsInClass ?? []).some(
+      (entry) => getObjectId(entry.user as mongoose.Types.ObjectId)?.toString() === studentId.toString()
+    );
+
+  if (alreadyInTarget) {
+    throw new ApiError(httpStatus.CONFLICT, 'Student is already enrolled in the target class');
+  }
+
+  const courseIdSet = new Set<string>();
+  for (const entry of sourceClass.studentsInClass ?? []) {
+    const uid = getObjectId(entry.user as mongoose.Types.ObjectId);
+    const cid = getObjectId(entry.course as mongoose.Types.ObjectId);
+    if (uid?.toString() === studentId.toString() && cid) {
+      courseIdSet.add(cid.toString());
+    }
+  }
+  for (const progress of sourceProgress) {
+    const cid = getObjectId(progress.courseId as mongoose.Types.ObjectId);
+    if (cid) {
+      courseIdSet.add(cid.toString());
+    }
+  }
+
+  const movedCourses = [...courseIdSet].map((id) => new mongoose.Types.ObjectId(id));
+
+  if (movedCourses.length === 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Student has no course enrollments to transfer in the source class');
+  }
+
+  const conflictingProgress = await StudentProgress.find({
+    studentId,
+    classId: targetClassId,
+    courseId: { $in: movedCourses },
+  }).lean();
+
+  if (conflictingProgress.length > 0) {
+    throw new ApiError(
+      httpStatus.CONFLICT,
+      'Student already has course progress in the target class for one or more courses being moved'
+    );
+  }
+
+  const sourceMrts = await MRT.find({ studentId, classId: fromClassId }).lean();
+  if (sourceMrts.length > 0) {
+    const months = [...new Set(sourceMrts.map((m) => m.month))];
+    const conflictingMrts = await MRT.find({
+      studentId,
+      classId: targetClassId,
+      courseId: { $in: movedCourses },
+      month: { $in: months },
+    }).lean();
+
+    if (conflictingMrts.length > 0) {
+      throw new ApiError(
+        httpStatus.CONFLICT,
+        'Student already has monthly reports in the target class that would conflict with the transfer'
+      );
+    }
+  }
+
+  const sourcePromotions = await StudentPromotion.find({ studentId, classId: fromClassId }).lean();
+  if (sourcePromotions.length > 0) {
+    const promotionTargetCourseIds = sourcePromotions
+      .map((p) => getObjectId(p.targetCourseId as mongoose.Types.ObjectId))
+      .filter((id): id is mongoose.Types.ObjectId => !!id);
+
+    const conflictingPromotions = await StudentPromotion.find({
+      studentId,
+      classId: targetClassId,
+      targetCourseId: { $in: promotionTargetCourseIds },
+    }).lean();
+
+    if (conflictingPromotions.length > 0) {
+      throw new ApiError(
+        httpStatus.CONFLICT,
+        'Student already has promotion records in the target class that would conflict with the transfer'
+      );
+    }
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  let attendanceMigrated = false;
+
+  try {
+    await ensureStudentsInClassFromProgress(fromClassId, studentId, session);
+
+    const progressUpdate = await StudentProgress.updateMany(
+      { studentId, classId: fromClassId },
+      { $set: { classId: targetClassId } },
+      { session }
+    );
+
+    await MRT.updateMany({ studentId, classId: fromClassId }, { $set: { classId: targetClassId } }, { session });
+
+    await StudentPromotion.updateMany(
+      { studentId, classId: fromClassId },
+      { $set: { classId: targetClassId } },
+      { session }
+    );
+
+    const sourceAttendance = await StudentAttendance.findOne({ studentId, classId: fromClassId }).session(session);
+    const targetAttendance = await StudentAttendance.findOne({ studentId, classId: targetClassId }).session(session);
+
+    if (sourceAttendance && !targetAttendance) {
+      sourceAttendance.classId = targetClassId;
+      await sourceAttendance.save({ session });
+      attendanceMigrated = true;
+    } else if (sourceAttendance && targetAttendance) {
+      const mergeDates = (a: Date[] = [], b: Date[] = []) => {
+        const seen = new Set<string>();
+        const merged: Date[] = [];
+        for (const d of [...a, ...b]) {
+          const key = new Date(d).toISOString();
+          if (!seen.has(key)) {
+            seen.add(key);
+            merged.push(new Date(d));
+          }
+        }
+        return merged;
+      };
+
+      targetAttendance.presentDates = mergeDates(targetAttendance.presentDates, sourceAttendance.presentDates);
+      targetAttendance.absentDates = mergeDates(targetAttendance.absentDates, sourceAttendance.absentDates);
+      if (
+        sourceAttendance.joiningDate &&
+        (!targetAttendance.joiningDate || sourceAttendance.joiningDate < targetAttendance.joiningDate)
+      ) {
+        targetAttendance.joiningDate = sourceAttendance.joiningDate;
+      }
+      if (
+        sourceAttendance.lastDate &&
+        (!targetAttendance.lastDate || sourceAttendance.lastDate > targetAttendance.lastDate)
+      ) {
+        targetAttendance.lastDate = sourceAttendance.lastDate;
+      }
+      if ((sourceAttendance.classesInOneWeek?.length ?? 0) > 0 && (targetAttendance.classesInOneWeek?.length ?? 0) === 0) {
+        targetAttendance.classesInOneWeek = sourceAttendance.classesInOneWeek;
+      }
+      await targetAttendance.save({ session });
+      await StudentAttendance.deleteOne({ _id: sourceAttendance._id }, { session });
+      attendanceMigrated = true;
+    } else if (!sourceAttendance && !targetAttendance) {
+      await StudentAttendance.create(
+        [
+          {
+            studentId,
+            classId: targetClassId,
+            joiningDate: new Date(),
+          },
+        ],
+        { session }
+      );
+      attendanceMigrated = true;
+    }
+
+    await Classes.findByIdAndUpdate(
+      fromClassId,
+      {
+        $pull: {
+          students: studentId,
+          studentsInClass: { user: studentId },
+        },
+      },
+      { session }
+    );
+
+    const enrollmentEntries = movedCourses.map((courseId) => ({
+      user: studentId,
+      course: courseId,
+    }));
+
+    await Classes.findByIdAndUpdate(
+      targetClassId,
+      {
+        $addToSet: { students: studentId },
+        $push: { studentsInClass: { $each: enrollmentEntries } },
+      },
+      { session }
+    );
+
+    await User.findByIdAndUpdate(studentId, { $pull: { classes: fromClassId } }, { session });
+    await User.findByIdAndUpdate(studentId, { $addToSet: { classes: targetClassId } }, { session });
+
+    await session.commitTransaction();
+
+    return {
+      studentId,
+      fromClassId,
+      targetClassId,
+      movedCourses,
+      progressCount: progressUpdate.modifiedCount,
+      attendanceMigrated,
+    };
   } catch (error) {
     await session.abortTransaction();
     throw error;

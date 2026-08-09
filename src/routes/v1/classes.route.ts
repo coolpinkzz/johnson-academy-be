@@ -91,6 +91,12 @@ router.route('/:classesId/remove-student').patch(
   classesController.removeStudentFromClass
 );
 
+router.route('/:classesId/transfer-student').post(
+  authMiddleware('manageClasses'),
+  validate(classesValidation.transferStudentToClass),
+  classesController.transferStudentToClass
+);
+
 router.route('/:classesId/students').get(
   authMiddleware('getClasses'), // All authenticated users can view students in a class
   validate(classesValidation.getClass),

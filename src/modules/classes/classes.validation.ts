@@ -198,3 +198,13 @@ export const removeStudentFromClass = {
     courseId: Joi.string().custom(objectId).required(),
   }),
 };
+
+export const transferStudentToClass = {
+  params: Joi.object().keys({
+    classesId: Joi.string().custom(objectId).required(),
+  }),
+  body: Joi.object().keys({
+    studentId: Joi.string().custom(objectId).required(),
+    targetClassId: Joi.string().custom(objectId).required(),
+  }),
+};

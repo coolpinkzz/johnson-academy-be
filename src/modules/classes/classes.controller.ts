@@ -169,3 +169,20 @@ export const removeStudentFromClass = catchAsync(async (req: Request, res: Respo
     res.status(httpStatus.OK).send(classes);
   }
 });
+
+export const transferStudentToClass = catchAsync(async (req: Request, res: Response) => {
+  if (req.user && !canManageClasses(req.user.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only admin or master can transfer students between classes');
+  }
+
+  const classesId = req.params['classesId'];
+  if (typeof classesId === 'string') {
+    const { studentId, targetClassId } = req.body;
+    const result = await classesService.transferStudentToClass(
+      new mongoose.Types.ObjectId(classesId),
+      new mongoose.Types.ObjectId(studentId),
+      new mongoose.Types.ObjectId(targetClassId)
+    );
+    res.status(httpStatus.OK).send(result);
+  }
+});

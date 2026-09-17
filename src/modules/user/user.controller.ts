@@ -108,6 +108,50 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
   const user = await userService.updateUserById(targetUserId, req.body);
   res.send(user);
 });
+
+const assertCanUpdateProfilePicture = async (actor: IUserDoc | undefined, targetUserId: mongoose.Types.ObjectId) => {
+  if (!actor) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate');
+  }
+
+  if (actor._id.equals(targetUserId)) {
+    return;
+  }
+
+  if (!isStaffRole(actor.role) && actor.role !== 'teacher') {
+    throw new ApiError(httpStatus.FORBIDDEN, 'You can only update your own profile picture');
+  }
+
+  const targetUser = await userService.getUserById(targetUserId);
+  if (!targetUser) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  if (actor.role === 'teacher' && targetUser.role !== 'student') {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Teachers can only update student profile pictures');
+  }
+
+  if (targetUser.role === 'student') {
+    assertCanViewStudent(actor, targetUser.rollNumber);
+  }
+};
+
+export const updateProfilePicture = catchAsync(async (req: Request, res: Response) => {
+  if (typeof req.params['userId'] !== 'string') {
+    return;
+  }
+
+  if (!req.file) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'No file uploaded');
+  }
+
+  const targetUserId = new mongoose.Types.ObjectId(req.params['userId']);
+  await assertCanUpdateProfilePicture(req.user, targetUserId);
+
+  const user = await userService.updateProfilePictureById(targetUserId, req.file);
+  res.send(user);
+});
+
 /**
  * Delete user with cascade deletion
  * This will delete the user and all related records in other collections
@@ -151,7 +195,9 @@ export const getUserByStudentId = catchAsync(async (req: Request, res: Response)
     if (!user) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Student not found');
     }
-    assertCanViewStudent(req.user, user.rollNumber);
+    if (!isStaffRole(req.user?.role)) {
+      assertCanViewStudent(req.user, user.rollNumber);
+    }
     res.send(user);
   }
 });

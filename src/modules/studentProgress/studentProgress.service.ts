@@ -18,6 +18,8 @@ import {
   IEndModuleBody,
   ICancelModuleBody,
 } from './studentProgress.interfaces';
+import * as pushService from '../push/push.service';
+import logger from '../logger/logger';
 
 /**
  * Create student progress record
@@ -151,9 +153,7 @@ export const syncNewModulesToStudentProgress = async (modules: IModuleDoc[]): Pr
 /**
  * Backfill all modules for a syllabus into matching student progress records (idempotent).
  */
-export const syncAllModulesForSyllabusToStudentProgress = async (
-  syllabusId: mongoose.Types.ObjectId
-): Promise<void> => {
+export const syncAllModulesForSyllabusToStudentProgress = async (syllabusId: mongoose.Types.ObjectId): Promise<void> => {
   const modules = await Module.find({ syllabusId }).sort({ seq: 1, createdAt: 1 });
   await syncNewModulesToStudentProgress(modules);
 };
@@ -364,11 +364,13 @@ export const getCourseProgressStatistics = async (courseId: mongoose.Types.Objec
  * Start a module for a student
  * @param {mongoose.Types.ObjectId} studentProgressId
  * @param {IStartModuleBody} startBody
+ * @param {string} actorId - User who started the module (push is skipped if this is the student)
  * @returns {Promise<IStudentProgressDoc | null>}
  */
 export const startModule = async (
   studentProgressId: mongoose.Types.ObjectId,
-  startBody: IStartModuleBody
+  startBody: IStartModuleBody,
+  actorId: string
 ): Promise<IStudentProgressDoc | null> => {
   const studentProgress = await StudentProgress.findById(studentProgressId);
   if (!studentProgress) {
@@ -398,6 +400,20 @@ export const startModule = async (
 
   // Use the existing updateModuleStatus method to update the module
   await studentProgress.updateModuleStatus(startBody.moduleId, 'inprogress');
+
+  pushService
+    .notifyModuleStarted({
+      studentId: studentProgress.studentId,
+      progressId: studentProgress.id,
+      moduleId: startBody.moduleId,
+      syllabusId: startBody.syllabusId,
+      courseId: studentProgress.courseId,
+      classId: studentProgress.classId,
+      actorId,
+    })
+    .catch((error: unknown) => {
+      logger.error(`Failed to send module started push: ${error instanceof Error ? error.message : String(error)}`);
+    });
 
   return studentProgress;
 };

@@ -78,24 +78,19 @@ export const buildBranchRollNumberFilter = (branch: string): { $regex: string; $
 };
 
 /**
- * Extract branch id from a roll number using longest student-number prefix match
- * (so 1079 → "10", 1143 → "1").
+ * Extract branch id from the first digit of the student-number segment
+ * (JA/0626/1143 → "1", JA/1225/2208 → "2").
  */
 export const extractBranchFromRollNumber = (rollNumber: string): string | null => {
   const match = rollNumber.trim().match(/^JA\/(?:[A-Z]{3}|\d{4})\/(\d+)$/i);
   if (!match?.[1]) {
     return null;
   }
-  const studentNumber = match[1];
-  const prefixes = Object.entries(BRANCH_STUDENT_NUMBER_PREFIXES).sort(
-    (a, b) => b[1].length - a[1].length
-  );
-  for (const [branch, prefix] of prefixes) {
-    if (studentNumber.startsWith(prefix)) {
-      return branch;
-    }
+  const firstDigit = match[1][0];
+  if (!firstDigit || !BRANCH_STUDENT_NUMBER_PREFIXES[firstDigit]) {
+    return null;
   }
-  return null;
+  return firstDigit;
 };
 
 export type StudentBranchScope = { type: 'all' } | { type: 'none' } | { type: 'branches'; branches: string[] };
@@ -141,12 +136,14 @@ export const canAccessStudentRollNumber = (
   if (!actor.role || !BRANCH_RESTRICTED_ROLES.has(actor.role)) {
     return true;
   }
-  const allowed = (actor.branchAccess ?? []).map(String);
+  const allowed = (actor.branchAccess ?? []).map(String).filter((b) => BRANCH_QUERY_VALUES.includes(b));
   if (allowed.length === 0 || !rollNumber) {
     return false;
   }
-  const branch = extractBranchFromRollNumber(rollNumber);
-  return branch != null && allowed.includes(branch);
+  return allowed.some((branch) => {
+    const filter = buildBranchRollNumberFilter(branch);
+    return filter != null && new RegExp(filter.$regex, filter.$options).test(rollNumber);
+  });
 };
 
 /**

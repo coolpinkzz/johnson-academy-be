@@ -16,6 +16,8 @@ import assignmentRoute from './assignment.route';
 import dashboardRoute from './dashboard.route';
 import appVersionRoute from './appVersion.route';
 import compensationRoute from './compensation.route';
+import pushRoute from './push.route';
+
 const router = express.Router();
 
 interface IRoute {
@@ -83,6 +85,10 @@ const defaultIRoute: IRoute[] = [
   {
     path: '/compensation',
     route: compensationRoute,
+  },
+  {
+    path: '/push',
+    route: pushRoute,
   },
 ];
 

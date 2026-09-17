@@ -127,6 +127,12 @@ export const updateUser = {
     .min(1),
 };
 
+export const updateProfilePicture = {
+  params: Joi.object().keys({
+    userId: Joi.string().custom(objectId).required(),
+  }),
+};
+
 export const deleteUser = {
   params: Joi.object().keys({
     userId: Joi.string().custom(objectId),

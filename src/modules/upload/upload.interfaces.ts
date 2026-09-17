@@ -15,6 +15,7 @@ export interface IUploadRequest {
   folder?: string;
   tags?: string[];
   useUniqueFileName?: boolean;
+  imageOnly?: boolean;
 }
 
 export interface IImageKitConfig {

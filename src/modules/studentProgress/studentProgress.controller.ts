@@ -55,7 +55,8 @@ export const startModule = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['studentProgressId'] === 'string') {
     const studentProgress = await studentProgressService.startModule(
       new mongoose.Types.ObjectId(req.params['studentProgressId']),
-      req.body
+      req.body,
+      req.user.id
     );
     res.send(studentProgress);
   }

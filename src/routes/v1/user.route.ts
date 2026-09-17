@@ -1,9 +1,47 @@
-import express, { Router } from 'express';
+import express, { NextFunction, Request, Response, Router } from 'express';
+import multer from 'multer';
+import httpStatus from 'http-status';
 import { validate } from '../../modules/validate';
 import { auth } from '../../modules/auth';
 import { userController, userValidation } from '../../modules/user';
+import ApiError from '../../modules/errors/ApiError';
 
 const router: Router = express.Router();
+
+const PROFILE_PICTURE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+const PROFILE_PICTURE_MAX_SIZE = 5 * 1024 * 1024;
+
+const profilePictureUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: PROFILE_PICTURE_MAX_SIZE,
+  },
+  fileFilter: (_req, file, cb) => {
+    if (PROFILE_PICTURE_MIME_TYPES.includes(file.mimetype)) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('Only JPEG, PNG, GIF, and WebP images are allowed'));
+  },
+}).single('file');
+
+const handleProfilePictureUpload = (req: Request, res: Response, next: NextFunction) => {
+  profilePictureUpload(req, res, (err: unknown) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        next(new ApiError(httpStatus.BAD_REQUEST, 'File size too large. Maximum size is 5MB.'));
+        return;
+      }
+      next(new ApiError(httpStatus.BAD_REQUEST, err.message));
+      return;
+    }
+    if (err instanceof Error) {
+      next(new ApiError(httpStatus.BAD_REQUEST, err.message));
+      return;
+    }
+    next();
+  });
+};
 
 router
   .route('/')
@@ -23,6 +61,15 @@ router
 router.route('/student/:studentId').get(auth('getStudents'), userController.getUserByStudentId);
 
 router.route('/teacher/:teacherId').get(auth('getStudents'), userController.getUserByTeacherId);
+
+router
+  .route('/:userId/profile-picture')
+  .patch(
+    auth('updateProfile'),
+    handleProfilePictureUpload,
+    validate(userValidation.updateProfilePicture),
+    userController.updateProfilePicture
+  );
 
 router
   .route('/:userId')
@@ -261,6 +308,55 @@ export default router;
  *     responses:
  *       "200":
  *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ */
+
+/**
+ * @swagger
+ * /users/{userId}/profile-picture:
+ *   patch:
+ *     summary: Update a user's profile picture
+ *     description: >
+ *       Upload an image and set it as the user's profile picture.
+ *       Users can update their own picture. Teachers can update student pictures.
+ *       Staff can update any user's picture.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User id
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Profile image (JPEG, PNG, GIF, or WebP, max 5MB)
+ *     responses:
+ *       "200":
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *                $ref: '#/components/schemas/User'
+ *       "400":
+ *         $ref: '#/components/responses/BadRequest'
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":

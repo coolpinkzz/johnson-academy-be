@@ -7,6 +7,7 @@ import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedUser, UpdateUserBody, IUserDoc, NewRegisteredUser } from './user.interfaces';
 import { buildBranchRollNumberFilter, buildRollNumberSearchFilter, buildBranchAccessRollNumberOr } from './rollNumber.util';
+import uploadService from '../upload/upload.service';
 
 /**
  * Create a user
@@ -245,6 +246,39 @@ export const updateUserById = async (
   }
   await user.save();
   return user;
+};
+
+/**
+ * Upload an image and set it as the user's profile picture
+ * @param {mongoose.Types.ObjectId} userId
+ * @param {Express.Multer.File} file
+ * @returns {Promise<IUserDoc>}
+ */
+export const updateProfilePictureById = async (
+  userId: mongoose.Types.ObjectId,
+  file: Express.Multer.File
+): Promise<IUserDoc> => {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  const uploadResult = await uploadService.uploadFile({
+    file,
+    folder: 'johnson-academy/profile-pictures',
+    tags: ['profile', userId.toString()],
+    useUniqueFileName: true,
+    imageOnly: true,
+  });
+
+  try {
+    user.profilePicture = uploadResult.url;
+    await user.save();
+    return user;
+  } catch (error) {
+    await uploadService.deleteFile(uploadResult.fileId).catch(() => undefined);
+    throw error;
+  }
 };
 
 /**

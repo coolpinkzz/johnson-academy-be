@@ -24,7 +24,11 @@ class UploadService {
       const { file, folder = 'general', tags = [], useUniqueFileName = true } = uploadRequest;
 
       // Validate file type
-      if (!this.isValidFileType(file.mimetype)) {
+      if (uploadRequest.imageOnly) {
+        if (!this.isValidImageType(file.mimetype)) {
+          throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.');
+        }
+      } else if (!this.isValidFileType(file.mimetype)) {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid file type. Only images and PDFs are allowed.');
       }
 
@@ -83,10 +87,12 @@ class UploadService {
     }
   }
 
+  private isValidImageType(mimetype: string): boolean {
+    return ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'].includes(mimetype);
+  }
+
   private isValidFileType(mimetype: string): boolean {
-    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    const validDocumentTypes = ['application/pdf'];
-    return [...validImageTypes, ...validDocumentTypes].includes(mimetype);
+    return this.isValidImageType(mimetype) || mimetype === 'application/pdf';
   }
 }
 

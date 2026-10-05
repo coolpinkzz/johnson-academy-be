@@ -6,7 +6,7 @@ import { IMRTDoc, IMRTModel } from './mrt.interfaces';
 const scoreField = (message: string) => ({
   type: Number,
   required: true,
-  min: 2,
+  min: 0,
   max: 5,
   validate: {
     validator: Number.isInteger,
@@ -52,15 +52,15 @@ const mrtSchema = new mongoose.Schema<IMRTDoc, IMRTModel>(
     repertoireDynamics: scoreField('Repertoire (Dynamics) must be an integer'),
     totalScore: {
       type: Number,
-      min: 12,
+      min: 0,
       max: 30,
-      default: 12,
+      default: 0,
     },
     averageScore: {
       type: Number,
-      min: 2,
+      min: 0,
       max: 5,
-      default: 2,
+      default: 0,
     },
     remarks: {
       type: String,

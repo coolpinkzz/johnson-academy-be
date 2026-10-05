@@ -4,16 +4,16 @@ import { objectId } from '../validate/custom.validation';
 const scoreMessages = (label: string) => ({
   'number.base': `${label} must be a number`,
   'number.integer': `${label} must be an integer`,
-  'number.min': `${label} must be at least 2`,
+  'number.min': `${label} must be at least 0`,
   'number.max': `${label} must be at most 5`,
   'any.required': `${label} is required`,
 });
 
 const requiredScore = (label: string) =>
-  Joi.number().integer().min(2).max(5).required().messages(scoreMessages(label));
+  Joi.number().integer().min(0).max(5).required().messages(scoreMessages(label));
 
 const optionalScore = (label: string) =>
-  Joi.number().integer().min(2).max(5).optional().messages(scoreMessages(label));
+  Joi.number().integer().min(0).max(5).optional().messages(scoreMessages(label));
 
 export const createMRT = {
   body: Joi.object().keys({

@@ -44,6 +44,9 @@ const compensationRights = ['getCompensationBookings', 'manageCompensationBookin
 
 const noticeBoardRights = ['getNotices', 'manageNotices'] as const;
 
+/** Packages & payments — master and admin only (admin is branch-scoped in the controller). */
+const studentFeeRights = ['getStudentFees', 'manageStudentFees'] as const;
+
 const allRoles = {
   admin: [
     ...dashboardRights,
@@ -53,6 +56,7 @@ const allRoles = {
     ...attendanceRights,
     ...monthlyReportRights,
     ...compensationRights,
+    ...studentFeeRights,
     ...profileRights,
     'getAssignments',
   ],
@@ -76,6 +80,7 @@ const allRoles = {
     ...monthlyReportRights,
     ...compensationRights,
     ...noticeBoardRights,
+    ...studentFeeRights,
     ...profileRights,
     'getAssignments',
   ],

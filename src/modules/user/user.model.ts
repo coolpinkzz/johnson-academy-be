@@ -85,34 +85,6 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
       default: false,
     },
     // Academy-specific fields
-    studentId: {
-      type: String,
-      unique: true,
-      sparse: true,
-      validate: {
-        validator: function (this: any, value: string) {
-          if (this.role === 'student' && !value) {
-            return false;
-          }
-          return true;
-        },
-        message: 'Student ID is required for students',
-      },
-    },
-    teacherId: {
-      type: String,
-      unique: true,
-      sparse: true,
-      validate: {
-        validator: function (this: any, value: string) {
-          if (this.role === 'teacher' && !value) {
-            return false;
-          }
-          return true;
-        },
-        message: 'Teacher ID is required for teachers',
-      },
-    },
     department: {
       type: String,
       trim: true,
@@ -272,34 +244,6 @@ userSchema.static('isEmailTaken', async function (email: string, excludeUserId: 
   const user = await this.findOne({ email, _id: { $ne: excludeUserId } });
   return !!user;
 });
-
-/**
- * Check if student ID is taken
- * @param {string} studentId - The student's ID
- * @param {ObjectId} [excludeUserId] - The id of the user to be excluded
- * @returns {Promise<boolean>}
- */
-userSchema.static(
-  'isStudentIdTaken',
-  async function (studentId: string, excludeUserId: mongoose.ObjectId): Promise<boolean> {
-    const user = await this.findOne({ studentId, _id: { $ne: excludeUserId } });
-    return !!user;
-  }
-);
-
-/**
- * Check if teacher ID is taken
- * @param {string} teacherId - The teacher's ID
- * @param {ObjectId} [excludeUserId] - The id of the user to be excluded
- * @returns {Promise<boolean>}
- */
-userSchema.static(
-  'isTeacherIdTaken',
-  async function (teacherId: string, excludeUserId: mongoose.ObjectId): Promise<boolean> {
-    const user = await this.findOne({ teacherId, _id: { $ne: excludeUserId } });
-    return !!user;
-  }
-);
 
 /**
  * Check if roll number is taken

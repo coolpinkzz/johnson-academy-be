@@ -74,7 +74,6 @@ export const createTestUserWithRelatedData = async () => {
       email: 'test@example.com',
       password: 'password123',
       role: 'student',
-      studentId: 'TEST123',
       gradeLevel: '10',
       enrollmentDate: new Date(),
     });

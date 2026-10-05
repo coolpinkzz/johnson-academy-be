@@ -12,8 +12,6 @@ export interface IUser {
   branchAccess?: number[];
   isEmailVerified: boolean;
   // Academy-specific fields
-  studentId?: string;
-  teacherId?: string;
   department?: string;
   gradeLevel?: string;
   subjects?: string[];
@@ -48,8 +46,6 @@ export interface IUserDoc extends IUser, Document {
 
 export interface IUserModel extends Model<IUserDoc> {
   isEmailTaken(email: string, excludeUserId?: mongoose.Types.ObjectId): Promise<boolean>;
-  isStudentIdTaken(studentId: string, excludeUserId?: mongoose.Types.ObjectId): Promise<boolean>;
-  isTeacherIdTaken(teacherId: string, excludeUserId?: mongoose.Types.ObjectId): Promise<boolean>;
   isRollNumberTaken(rollNumber: string, excludeUserId?: mongoose.Types.ObjectId): Promise<boolean>;
   paginate(filter: Record<string, any>, options: Record<string, any>): Promise<QueryResult>;
 }

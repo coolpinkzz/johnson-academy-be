@@ -35,16 +35,6 @@ const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 
       otherwise: Joi.forbidden(),
     }),
   }),
-  studentId: Joi.string().when('role', {
-    is: 'student',
-    then: Joi.required(),
-    otherwise: Joi.forbidden(),
-  }),
-  teacherId: Joi.string().when('role', {
-    is: 'teacher',
-    then: Joi.required(),
-    otherwise: Joi.forbidden(),
-  }),
   department: Joi.string().when('role', {
     is: Joi.string().valid('teacher', 'admin', 'aqsd', 'master'),
     then: Joi.required(),

@@ -27,6 +27,11 @@ const courseSchema = new mongoose.Schema<ICourseDoc, ICourseModel>(
     level: {
       type: Number,
       required: false,
+      min: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: 'Level must be a whole number of 0 or higher',
+      },
     },
     syllabus: [
       {

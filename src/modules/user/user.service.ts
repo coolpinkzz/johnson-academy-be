@@ -8,6 +8,7 @@ import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedUser, UpdateUserBody, IUserDoc, NewRegisteredUser } from './user.interfaces';
 import { buildBranchRollNumberFilter, buildRollNumberSearchFilter, buildBranchAccessRollNumberOr } from './rollNumber.util';
 import uploadService from '../upload/upload.service';
+import StudentPackage from '../studentFee/studentPackage.model';
 
 /**
  * Create a user
@@ -17,19 +18,6 @@ import uploadService from '../upload/upload.service';
 export const createUser = async (userBody: NewCreatedUser): Promise<IUserDoc> => {
   if (await User.isEmailTaken(userBody.email)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
-  }
-
-  // Validate role-specific fields
-  if (userBody.role === 'student' && userBody.studentId) {
-    if (await User.isStudentIdTaken(userBody.studentId)) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Student ID already taken');
-    }
-  }
-
-  if (userBody.role === 'teacher' && userBody.teacherId) {
-    if (await User.isTeacherIdTaken(userBody.teacherId)) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Teacher ID already taken');
-    }
   }
 
   if (userBody.role === 'student' && userBody.rollNumber) {
@@ -55,19 +43,6 @@ export const createUser = async (userBody: NewCreatedUser): Promise<IUserDoc> =>
 export const registerUser = async (userBody: NewRegisteredUser): Promise<IUserDoc> => {
   if (await User.isEmailTaken(userBody.email)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
-  }
-
-  // Validate role-specific fields
-  if (userBody.role === 'student' && userBody.studentId) {
-    if (await User.isStudentIdTaken(userBody.studentId)) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Student ID already taken');
-    }
-  }
-
-  if (userBody.role === 'teacher' && userBody.teacherId) {
-    if (await User.isTeacherIdTaken(userBody.teacherId)) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Teacher ID already taken');
-    }
   }
 
   if (userBody.role === 'student' && userBody.rollNumber) {
@@ -216,15 +191,6 @@ export const updateUserById = async (
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
 
-  // Validate role-specific fields
-  if (updateBody.studentId && (await User.isStudentIdTaken(updateBody.studentId, userId))) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Student ID already taken');
-  }
-
-  if (updateBody.teacherId && (await User.isTeacherIdTaken(updateBody.teacherId, userId))) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Teacher ID already taken');
-  }
-
   if (updateBody.rollNumber && (await User.isRollNumberTaken(updateBody.rollNumber, userId))) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Roll number already taken');
   }
@@ -291,6 +257,14 @@ export const deleteUserById = async (userId: mongoose.Types.ObjectId): Promise<I
   const user = await getUserById(userId);
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  // Fee history must outlive the account; such students are deactivated instead
+  if (await StudentPackage.exists({ studentId: userId })) {
+    throw new ApiError(
+      httpStatus.CONFLICT,
+      'This student has fee records and cannot be deleted. Deactivate the student instead.'
+    );
   }
 
   // Start a transaction to ensure all deletions succeed or fail together
@@ -398,5 +372,5 @@ export const getUserByStudentId = async (studentId: string): Promise<IUserDoc | 
  * @returns {Promise<IUserDoc | null>}
  */
 export const getUserByTeacherId = async (teacherId: string): Promise<IUserDoc | null> => {
-  return User.findOne({ teacherId, isActive: true });
+  return User.findOne({ _id: teacherId, role: 'teacher', isActive: true });
 };

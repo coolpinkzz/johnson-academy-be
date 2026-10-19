@@ -103,6 +103,8 @@ const studentProgressSchema = new mongoose.Schema<IStudentProgressDoc, IStudentP
 
 // One progress record per student + class + course (supports multiple courses per class)
 studentProgressSchema.index({ studentId: 1, classId: 1, courseId: 1 }, { unique: true });
+// MRT reporting resolves enrollments for a branch by class id.
+studentProgressSchema.index({ classId: 1 });
 
 // add plugin that converts mongoose to json
 studentProgressSchema.plugin(toJSON);

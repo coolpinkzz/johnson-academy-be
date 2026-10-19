@@ -87,6 +87,8 @@ classesSchema.path('teachers').validate(function (value: any[]) {
   return (value && value.length > 0) || !!(this as mongoose.Document & { teacherId?: mongoose.Types.ObjectId }).teacherId;
 }, 'At least one teacher is required');
 
+classesSchema.index({ branch: 1 });
+
 classesSchema.plugin(toJSON);
 classesSchema.plugin(paginate);
 

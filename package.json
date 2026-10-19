@@ -44,6 +44,7 @@
     "script:sync-student-progress-modules": "node dist/scripts/syncStudentProgressModules.js",
     "script:delete-all-classes": "node dist/scripts/deleteAllClasses.js",
     "script:migrate-class-teachers": "node dist/scripts/migrateClassTeachers.js",
+    "script:set-class-branch": "node dist/scripts/setClassBranchFromName.js",
     "script:seed-app-version": "node dist/scripts/seedAppVersion.js",
     "script:revert-initial-level2-promotions": "node dist/scripts/revertInitialToLevel2Promotions.js"
   },

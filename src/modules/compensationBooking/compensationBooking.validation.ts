@@ -1,6 +1,6 @@
 import Joi from 'joi';
 import { objectId } from '../validate/custom.validation';
-import { BRANCH_QUERY_VALUES } from '../user/rollNumber.util';
+import { CLASS_BRANCH_VALUES } from '../classes/classes.interfaces';
 import { COMPENSATION_BOOKING_STATUSES } from './compensationBooking.interfaces';
 
 const ymd = Joi.string()
@@ -10,7 +10,7 @@ const ymd = Joi.string()
 export const listAvailableClasses = {
   query: Joi.object().keys({
     date: ymd.required(),
-    branch: Joi.string().valid(...BRANCH_QUERY_VALUES),
+    branch: Joi.string().valid(...CLASS_BRANCH_VALUES),
     excludeClassId: Joi.string().custom(objectId),
     homeClassId: Joi.string().custom(objectId),
   }),

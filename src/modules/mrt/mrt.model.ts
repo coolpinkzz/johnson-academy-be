@@ -83,6 +83,8 @@ const mrtSchema = new mongoose.Schema<IMRTDoc, IMRTModel>(
 
 // One MRT per student + class + course + month (supports multiple courses per class)
 mrtSchema.index({ month: 1, classId: 1, studentId: 1, courseId: 1 }, { unique: true });
+// Reporting lookups match an enrollment, then filter months in memory.
+mrtSchema.index({ studentId: 1, classId: 1, courseId: 1 });
 
 // Pre-save middleware to calculate total and average scores
 mrtSchema.pre('save', function (this: any, next) {

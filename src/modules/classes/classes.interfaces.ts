@@ -1,5 +1,12 @@
 import mongoose, { Model, Document } from 'mongoose';
 import { QueryResult } from '../paginate/paginate';
+import { BRANCH_QUERY_VALUES } from '../user/rollNumber.util';
+
+/** Class location that is not a campus roll-number branch. */
+export const CLASS_BRANCH_ONLINE = 'online';
+
+/** Values stored on a class. Online is not a student roll-number branch. */
+export const CLASS_BRANCH_VALUES = [...BRANCH_QUERY_VALUES, CLASS_BRANCH_ONLINE] as const;
 
 export const CLASS_WEEKDAYS = [
   'Monday',

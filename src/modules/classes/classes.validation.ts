@@ -1,7 +1,6 @@
 import Joi from 'joi';
 import { objectId } from '../validate/custom.validation';
-import { BRANCH_QUERY_VALUES } from '../user/rollNumber.util';
-import { CLASS_WEEKDAYS } from './classes.interfaces';
+import { CLASS_BRANCH_VALUES, CLASS_WEEKDAYS } from './classes.interfaces';
 
 const teachersJoi = Joi.array().items(Joi.string().custom(objectId));
 
@@ -20,7 +19,7 @@ const scheduleDefaultsFields = {
 
 const optionalMetaFields = {
   branch: Joi.string()
-    .valid(...BRANCH_QUERY_VALUES)
+    .valid(...CLASS_BRANCH_VALUES)
     .optional(),
   academicYear: Joi.string().trim().max(32).optional(),
   notes: Joi.string().trim().allow('').optional(),
@@ -88,7 +87,7 @@ export const getClasses = {
     teachers: Joi.string().custom(objectId),
     courseId: Joi.string().custom(objectId),
     name: Joi.string(),
-    branch: Joi.string().valid(...BRANCH_QUERY_VALUES),
+    branch: Joi.string().valid(...CLASS_BRANCH_VALUES),
     academicYear: Joi.string(),
     sortBy: Joi.string(),
     projectBy: Joi.string(),

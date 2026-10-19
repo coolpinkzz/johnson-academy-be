@@ -3,21 +3,56 @@ import auth from '../../modules/auth/auth.middleware';
 import validate from '../../modules/validate/validate.middleware';
 import * as mrtValidation from '../../modules/mrt/mrt.validation';
 import * as mrtController from '../../modules/mrt/mrt.controller';
+import * as reportingController from '../../modules/mrt/mrt.reporting.controller';
+import * as reportingValidation from '../../modules/mrt/mrt.reporting.validation';
 
 const router = express.Router();
 
-/**
- * @route POST /v1/mrt
- * @desc Create a new MRT record
- * @access Private (Teacher/Admin only)
- */
 router.post('/', auth('manageMRT'), validate(mrtValidation.createMRT), mrtController.createMRT);
 
-/**
- * @route GET /v1/mrt
- * @desc Get all MRT records with pagination
- * @access Public
- */
+router.get(
+  '/reporting/dashboard',
+  auth('getMRT'),
+  validate(reportingValidation.getMrtReportingDashboard),
+  reportingController.getDashboard
+);
+router.get(
+  '/reporting/summary',
+  auth('getMRT'),
+  validate(reportingValidation.getMrtReportingSummary),
+  reportingController.getSummary
+);
+router.get(
+  '/reporting/branches',
+  auth('getMRT'),
+  validate(reportingValidation.getMrtBranchLeaderboard),
+  reportingController.getBranches
+);
+router.get(
+  '/reporting/teachers',
+  auth('getMRT'),
+  validate(reportingValidation.getMrtTeacherLeaderboard),
+  reportingController.getTeachers
+);
+router.get(
+  '/reporting/months',
+  auth('getMRT'),
+  validate(reportingValidation.getMrtMonthLeaderboard),
+  reportingController.getMonths
+);
+router.get(
+  '/reporting/instruments',
+  auth('getMRT'),
+  validate(reportingValidation.getMrtInstrumentLeaderboard),
+  reportingController.getInstruments
+);
+router.get(
+  '/reporting/records',
+  auth('getMRT'),
+  validate(reportingValidation.getMrtReportingRecords),
+  reportingController.getRecords
+);
+
 router.get('/', mrtController.getMRTs);
 
 /**

@@ -1,11 +1,23 @@
 import mongoose, { Document, Model } from 'mongoose';
 import { QueryResult } from '../paginate/paginate';
 
+export const MRT_SCORE_FIELDS = [
+  'regularity',
+  'learningSpeed',
+  'theory',
+  'technicalExercises',
+  'repertoireRhythmSense',
+  'repertoireDynamics',
+] as const;
+
+export type MrtScoreField = (typeof MRT_SCORE_FIELDS)[number];
+
 export interface IMRT {
   month: string;
   classId: mongoose.Types.ObjectId;
   studentId: mongoose.Types.ObjectId;
   courseId: mongoose.Types.ObjectId;
+  isAbsent: boolean;
   regularity: number;
   learningSpeed: number;
   theory: number;
@@ -36,6 +48,7 @@ export interface IMRTModel extends Model<IMRTDoc> {
 }
 
 export interface IMRTUpdateBody {
+  isAbsent?: boolean;
   regularity?: number;
   learningSpeed?: number;
   theory?: number;
@@ -50,11 +63,12 @@ export interface IMRTCreateBody {
   classId: string;
   studentId: string;
   courseId: string;
-  regularity: number;
-  learningSpeed: number;
-  theory: number;
-  technicalExercises: number;
-  repertoireRhythmSense: number;
-  repertoireDynamics: number;
+  isAbsent?: boolean;
+  regularity?: number;
+  learningSpeed?: number;
+  theory?: number;
+  technicalExercises?: number;
+  repertoireRhythmSense?: number;
+  repertoireDynamics?: number;
   remarks?: string;
 }

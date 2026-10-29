@@ -11,14 +11,16 @@ export const MAX_MONTH_OPTIONS = 36;
 export const REPORTING_NOTES = [
   'One MRT is expected per student, class, and course for each month on or after the enrollment month.',
   'Enrollment months use Asia/Kolkata. Stored MRT months are normalized to YYYY-MM.',
-  'A report is submitted when an MRT record exists. Scores are required on create, so there is no draft or partial status.',
+  'A report is submitted when a scored MRT record exists.',
+  'Absent means the teacher marked the student as not available for that month, so no marks were given.',
   'Missing means no MRT record for an expected enrollment-month.',
+  'Completion treats scored and absent records as filled. Score averages use scored MRTs only.',
   'Inactive students are excluded. Removing an enrollment deletes its MRT rows, so departed students are not historical pending reports.',
   'A class with more than one teacher is counted once in the summary and once for each teacher.',
-  'Leaderboard score is the mean total (out of 30) and mean average (out of 5) of submitted MRTs. Missing reports are left out of the average.',
+  'Leaderboard score is the mean total (out of 30) and mean average (out of 5) of submitted MRTs. Missing and absent reports are left out of the average.',
 ] as const;
 
-export type ReportStatus = 'submitted' | 'missing';
+export type ReportStatus = 'submitted' | 'missing' | 'absent';
 export type SortOrder = 'asc' | 'desc';
 
 export type LeaderboardSortField =
@@ -27,11 +29,12 @@ export type LeaderboardSortField =
   | 'expected'
   | 'submitted'
   | 'missing'
+  | 'absent'
   | 'completionPercentage'
   | 'averageTotalScore'
   | 'averageScore';
 
-export type MonthSortField = 'month' | 'expected' | 'submitted' | 'missing' | 'completionPercentage';
+export type MonthSortField = 'month' | 'expected' | 'submitted' | 'missing' | 'absent' | 'completionPercentage';
 
 export type RecordSortField =
   | 'studentName'
@@ -50,6 +53,7 @@ export interface ReportingReport {
   month: string;
   submittedAt: Date | string | null;
   mrtId: string;
+  isAbsent?: boolean;
   totalScore?: number | null;
   averageScore?: number | null;
 }
@@ -92,6 +96,7 @@ export interface ReportFact {
   status: ReportStatus;
   submittedAt: string | null;
   mrtId: string | null;
+  isAbsent: boolean;
   totalScore: number | null;
   averageScore: number | null;
 }
@@ -101,6 +106,7 @@ export interface MetricSnapshot {
   expected: number;
   submitted: number;
   missing: number;
+  absent: number;
   completionPercentage: number | null;
   averageTotalScore: number | null;
   averageScore: number | null;
@@ -110,6 +116,7 @@ export interface ReportCountSnapshot {
   expected: number;
   submitted: number;
   missing: number;
+  absent: number;
   completionPercentage: number | null;
 }
 

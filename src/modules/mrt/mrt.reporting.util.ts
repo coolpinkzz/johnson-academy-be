@@ -213,22 +213,42 @@ const meanScore = (values: Array<number | null>): number | null => {
 
 const indexReports = (
   reports: ReportingReport[]
-): Map<string, { submittedAt: string | null; mrtId: string; totalScore: number | null; averageScore: number | null }> =>
+): Map<
+  string,
+  {
+    submittedAt: string | null;
+    mrtId: string;
+    isAbsent: boolean;
+    totalScore: number | null;
+    averageScore: number | null;
+  }
+> =>
   reports.reduce((map, report) => {
     const month = normalizeReportingMonth(report.month);
     if (!month) return map;
     const submittedAt = toIso(report.submittedAt);
     const existing = map.get(month);
     if (!existing || (submittedAt != null && (existing.submittedAt == null || submittedAt < existing.submittedAt))) {
+      const isAbsent = Boolean(report.isAbsent);
       map.set(month, {
         submittedAt,
         mrtId: report.mrtId,
-        totalScore: scoreOrNull(report.totalScore),
-        averageScore: scoreOrNull(report.averageScore),
+        isAbsent,
+        totalScore: isAbsent ? null : scoreOrNull(report.totalScore),
+        averageScore: isAbsent ? null : scoreOrNull(report.averageScore),
       });
     }
     return map;
-  }, new Map<string, { submittedAt: string | null; mrtId: string; totalScore: number | null; averageScore: number | null }>());
+  }, new Map<
+    string,
+    {
+      submittedAt: string | null;
+      mrtId: string;
+      isAbsent: boolean;
+      totalScore: number | null;
+      averageScore: number | null;
+    }
+  >());
 
 export const filterEnrollments = (
   enrollments: ReportingEnrollment[],
@@ -264,7 +284,7 @@ export const buildReportFacts = (
     return months.flatMap((month) => {
       if (month < enrolledMonth) return [];
       const report = reports.get(month);
-      const status: ReportStatus = report ? 'submitted' : 'missing';
+      const status: ReportStatus = !report ? 'missing' : report.isAbsent ? 'absent' : 'submitted';
       return [
         {
           studentId: enrollment.studentId,
@@ -283,6 +303,7 @@ export const buildReportFacts = (
           status,
           submittedAt: report?.submittedAt ?? null,
           mrtId: report?.mrtId ?? null,
+          isAbsent: report?.isAbsent ?? false,
           totalScore: report?.totalScore ?? null,
           averageScore: report?.averageScore ?? null,
         },
@@ -295,13 +316,16 @@ const countStudents = (facts: ReportFact[]): number => new Set(facts.map((fact) 
 
 export const summarizeFacts = (facts: ReportFact[]): MetricSnapshot => {
   const submittedFacts = facts.filter((fact) => fact.status === 'submitted');
+  const absent = facts.filter((fact) => fact.status === 'absent').length;
   const expected = facts.length;
+  const filled = submittedFacts.length + absent;
   return {
     eligibleStudents: countStudents(facts),
     expected,
     submitted: submittedFacts.length,
-    missing: expected - submittedFacts.length,
-    completionPercentage: completionPercentage(submittedFacts.length, expected),
+    missing: expected - filled,
+    absent,
+    completionPercentage: completionPercentage(filled, expected),
     averageTotalScore: meanScore(submittedFacts.map((fact) => fact.totalScore)),
     averageScore: meanScore(submittedFacts.map((fact) => fact.averageScore)),
   };
@@ -311,6 +335,7 @@ const toReportCounts = (metrics: MetricSnapshot): ReportCountSnapshot => ({
   expected: metrics.expected,
   submitted: metrics.submitted,
   missing: metrics.missing,
+  absent: metrics.absent,
   completionPercentage: metrics.completionPercentage,
 });
 
@@ -603,6 +628,7 @@ export const emptyMetrics = (): MetricSnapshot => ({
   expected: 0,
   submitted: 0,
   missing: 0,
+  absent: 0,
   completionPercentage: null,
   averageTotalScore: null,
   averageScore: null,

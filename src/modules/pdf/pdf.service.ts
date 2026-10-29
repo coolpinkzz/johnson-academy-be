@@ -23,6 +23,7 @@ export interface AttendanceData {
   joiningDate: string;
   month: string;
   mrtData?: {
+    isAbsent?: boolean;
     regularity: number;
     learningSpeed: number;
     theory: number;
@@ -248,6 +249,21 @@ export class PDFService {
       const mrtLabelColWidth = 400;
       const mrtScoreColWidth = 100;
       const mrtRowHeight = 25;
+
+      if (data.mrtData.isAbsent) {
+        this.ensureSpace(doc, 50);
+        doc.fontSize(12).fillColor('#1a4e8a').text('MRT: Absent');
+        doc
+          .fontSize(12)
+          .fillColor('black')
+          .text('Student was not available. No marks were given for this month.');
+        if (data.mrtData.remarks) {
+          doc.moveDown(0.5);
+          doc.fontSize(12).fillColor('#1a4e8a').text('Remarks:');
+          doc.fontSize(12).fillColor('black').text(data.mrtData.remarks);
+        }
+        return doc;
+      }
 
       const mrtDetails = [
         { label: 'Regularity (5M)', value: data.mrtData.regularity },

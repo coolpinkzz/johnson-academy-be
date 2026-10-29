@@ -15,23 +15,50 @@ const requiredScore = (label: string) =>
 const optionalScore = (label: string) =>
   Joi.number().integer().min(0).max(5).optional().messages(scoreMessages(label));
 
+const monthField = Joi.string()
+  .required()
+  .pattern(/^(0[1-9]|1[0-2])-\d{4}$|^\d{4}-(0[1-9]|1[0-2])$/)
+  .message('Month must be in format MM-YYYY or YYYY-MM');
+
+const mrtIdentityFields = {
+  month: monthField,
+  classId: Joi.string().custom(objectId).required(),
+  studentId: Joi.string().custom(objectId).required(),
+  courseId: Joi.string().custom(objectId).required(),
+  remarks: Joi.string().max(500).optional(),
+};
+
+const requiredScores = {
+  regularity: requiredScore('Regularity'),
+  learningSpeed: requiredScore('Learning Speed'),
+  theory: requiredScore('Theory'),
+  technicalExercises: requiredScore('Technical Exercises'),
+  repertoireRhythmSense: requiredScore('Repertoire (Rhythm Sense)'),
+  repertoireDynamics: requiredScore('Repertoire (Dynamics)'),
+};
+
+const optionalScores = {
+  regularity: optionalScore('Regularity'),
+  learningSpeed: optionalScore('Learning Speed'),
+  theory: optionalScore('Theory'),
+  technicalExercises: optionalScore('Technical Exercises'),
+  repertoireRhythmSense: optionalScore('Repertoire (Rhythm Sense)'),
+  repertoireDynamics: optionalScore('Repertoire (Dynamics)'),
+};
+
 export const createMRT = {
-  body: Joi.object().keys({
-    month: Joi.string()
-      .required()
-      .pattern(/^(0[1-9]|1[0-2])-\d{4}$|^\d{4}-(0[1-9]|1[0-2])$/)
-      .message('Month must be in format MM-YYYY or YYYY-MM'),
-    classId: Joi.string().custom(objectId).required(),
-    studentId: Joi.string().custom(objectId).required(),
-    courseId: Joi.string().custom(objectId).required(),
-    regularity: requiredScore('Regularity'),
-    learningSpeed: requiredScore('Learning Speed'),
-    theory: requiredScore('Theory'),
-    technicalExercises: requiredScore('Technical Exercises'),
-    repertoireRhythmSense: requiredScore('Repertoire (Rhythm Sense)'),
-    repertoireDynamics: requiredScore('Repertoire (Dynamics)'),
-    remarks: Joi.string().max(500).optional(),
-  }),
+  body: Joi.alternatives().try(
+    Joi.object().keys({
+      ...mrtIdentityFields,
+      isAbsent: Joi.boolean().valid(true).required(),
+      ...optionalScores,
+    }),
+    Joi.object().keys({
+      ...mrtIdentityFields,
+      isAbsent: Joi.boolean().valid(false).optional(),
+      ...requiredScores,
+    })
+  ),
 };
 
 export const getMRT = {
@@ -46,6 +73,7 @@ export const updateMRT = {
   }),
   body: Joi.object()
     .keys({
+      isAbsent: Joi.boolean().optional(),
       regularity: optionalScore('Regularity'),
       learningSpeed: optionalScore('Learning Speed'),
       theory: optionalScore('Theory'),

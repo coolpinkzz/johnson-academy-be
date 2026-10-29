@@ -87,6 +87,7 @@ interface RawReport {
   _id: mongoose.Types.ObjectId;
   month?: string;
   createdAt?: Date;
+  isAbsent?: boolean;
   totalScore?: number;
   averageScore?: number;
 }
@@ -166,6 +167,7 @@ const mapEnrollment = (row: RawEnrollmentRow): ReportingEnrollment => {
           month: report.month,
           submittedAt: report.createdAt ?? null,
           mrtId: String(report._id),
+          isAbsent: Boolean(report.isAbsent),
           ...(typeof report.totalScore === 'number' ? { totalScore: report.totalScore } : {}),
           ...(typeof report.averageScore === 'number' ? { averageScore: report.averageScore } : {}),
         },
@@ -232,7 +234,7 @@ const loadEnrollments = async (classIds: mongoose.Types.ObjectId[] | undefined):
               },
             },
           },
-          { $project: { month: 1, createdAt: 1, totalScore: 1, averageScore: 1 } },
+          { $project: { month: 1, createdAt: 1, isAbsent: 1, totalScore: 1, averageScore: 1 } },
         ],
         as: 'reports',
       },

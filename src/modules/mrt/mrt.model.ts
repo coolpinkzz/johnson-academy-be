@@ -5,11 +5,17 @@ import { IMRTDoc, IMRTModel } from './mrt.interfaces';
 
 const scoreField = (message: string) => ({
   type: Number,
-  required: true,
+  required: function (this: { isAbsent?: boolean }) {
+    return !this.isAbsent;
+  },
   min: 0,
   max: 5,
+  default: 0,
   validate: {
-    validator: Number.isInteger,
+    validator: function (this: { isAbsent?: boolean }, value: number) {
+      if (this.isAbsent) return true;
+      return Number.isInteger(value);
+    },
     message,
   },
 });
@@ -43,6 +49,10 @@ const mrtSchema = new mongoose.Schema<IMRTDoc, IMRTModel>(
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: 'Course',
+    },
+    isAbsent: {
+      type: Boolean,
+      default: false,
     },
     regularity: scoreField('Regularity must be an integer'),
     learningSpeed: scoreField('Learning Speed must be an integer'),
@@ -86,15 +96,33 @@ mrtSchema.index({ month: 1, classId: 1, studentId: 1, courseId: 1 }, { unique: t
 // Reporting lookups match an enrollment, then filter months in memory.
 mrtSchema.index({ studentId: 1, classId: 1, courseId: 1 });
 
+const zeroAbsentScores = (doc: IMRTDoc) => {
+  doc.regularity = 0;
+  doc.learningSpeed = 0;
+  doc.theory = 0;
+  doc.technicalExercises = 0;
+  doc.repertoireRhythmSense = 0;
+  doc.repertoireDynamics = 0;
+  doc.totalScore = 0;
+  doc.averageScore = 0;
+};
+
 // Pre-save middleware to calculate total and average scores
 mrtSchema.pre('save', function (this: any, next) {
+  if (this.isAbsent) {
+    zeroAbsentScores(this);
+    next();
+    return;
+  }
+
   if (
     this.isModified('regularity') ||
     this.isModified('learningSpeed') ||
     this.isModified('theory') ||
     this.isModified('technicalExercises') ||
     this.isModified('repertoireRhythmSense') ||
-    this.isModified('repertoireDynamics')
+    this.isModified('repertoireDynamics') ||
+    this.isModified('isAbsent')
   ) {
     this.totalScore =
       this.regularity +

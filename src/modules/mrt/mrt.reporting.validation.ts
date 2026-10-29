@@ -24,6 +24,7 @@ const leaderboardSort = {
       'expected',
       'submitted',
       'missing',
+      'absent',
       'completionPercentage',
       'averageTotalScore',
       'averageScore'
@@ -57,7 +58,9 @@ export const getMrtTeacherLeaderboard = {
 export const getMrtMonthLeaderboard = {
   query: Joi.object().keys({
     ...reportingFilters,
-    sortBy: Joi.string().valid('month', 'expected', 'submitted', 'missing', 'completionPercentage').default('month'),
+    sortBy: Joi.string()
+      .valid('month', 'expected', 'submitted', 'missing', 'absent', 'completionPercentage')
+      .default('month'),
     sortOrder: Joi.string().valid('asc', 'desc').default('asc'),
   }),
 };
@@ -73,7 +76,7 @@ export const getMrtReportingRecords = {
   query: Joi.object().keys({
     ...reportingFilters,
     search: Joi.string().trim().max(100).allow(''),
-    status: Joi.string().valid('submitted', 'missing'),
+    status: Joi.string().valid('submitted', 'missing', 'absent'),
     sortBy: Joi.string()
       .valid(
         'studentName',

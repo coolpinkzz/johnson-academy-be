@@ -167,6 +167,7 @@ describe('report facts', () => {
       expected: 0,
       submitted: 0,
       missing: 0,
+      absent: 0,
       completionPercentage: null,
       averageTotalScore: null,
       averageScore: null,
@@ -207,6 +208,42 @@ describe('report facts', () => {
 
   test('ignores an enrollment that has no enrollment date', () => {
     expect(buildReportFacts([enrollment({ enrolledAt: null })], {}, ['2026-01'])).toEqual([]);
+  });
+
+  test('treats an absent MRT as filled without counting it in score averages', () => {
+    const facts = rangeFacts([
+      enrollment({
+        reports: [{ month: '2026-01', submittedAt: '2026-02-01T00:00:00.000Z', mrtId: 'm-absent', isAbsent: true, totalScore: 0, averageScore: 0 }],
+      }),
+      enrollment({
+        studentId: 's2',
+        studentName: 'Bina',
+        classId: 'c2',
+        courseId: 'piano-1',
+        instrument: 'Piano',
+        reports: [{ month: '2026-01', submittedAt: '2026-02-01T00:00:00.000Z', mrtId: 'm-scored', totalScore: 24, averageScore: 4 }],
+      }),
+    ]);
+    const ashaJanuary = facts.find((fact) => fact.studentId === 's1' && fact.month === '2026-01');
+    expect(ashaJanuary).toMatchObject({
+      status: 'absent',
+      isAbsent: true,
+      mrtId: 'm-absent',
+      totalScore: null,
+      averageScore: null,
+    });
+    expect(facts.find((fact) => fact.studentId === 's1' && fact.month === '2026-02')?.status).toBe('missing');
+
+    const summary = summarizeFacts(facts);
+    expect(summary).toMatchObject({
+      expected: 4,
+      submitted: 1,
+      absent: 1,
+      missing: 2,
+      completionPercentage: 50,
+      averageTotalScore: 24,
+      averageScore: 4,
+    });
   });
 });
 

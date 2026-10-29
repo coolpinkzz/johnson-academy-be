@@ -1,11 +1,25 @@
 import mongoose from 'mongoose';
-import { IMRTDoc, IMRTCreateBody, IMRTUpdateBody } from './mrt.interfaces';
+import { IMRTDoc, IMRTCreateBody, IMRTUpdateBody, MRT_SCORE_FIELDS } from './mrt.interfaces';
 import MRT from './mrt.model';
 import Course from '../course/course.model';
 import StudentProgress from '../studentProgress/studentProgress.model';
 import ApiError from '../errors/ApiError';
 import httpStatus from 'http-status';
 import { IOptions, QueryResult } from '../paginate/paginate';
+
+const ABSENT_SCORES = {
+  regularity: 0,
+  learningSpeed: 0,
+  theory: 0,
+  technicalExercises: 0,
+  repertoireRhythmSense: 0,
+  repertoireDynamics: 0,
+  totalScore: 0,
+  averageScore: 0,
+} as const;
+
+const hasAllScoreFields = (body: IMRTUpdateBody): boolean =>
+  MRT_SCORE_FIELDS.every((field) => typeof body[field] === 'number');
 
 const mrtPopulate = [
   { path: 'studentId', select: 'name email studentId' },
@@ -52,6 +66,8 @@ export const createMRT = async (mrtBody: IMRTCreateBody, userId: string): Promis
 
   const mrt = await MRT.create({
     ...mrtBody,
+    ...(mrtBody.isAbsent ? ABSENT_SCORES : {}),
+    isAbsent: Boolean(mrtBody.isAbsent),
     createdBy: userId,
   });
 
@@ -115,7 +131,19 @@ export const updateMRTById = async (
     throw new ApiError(httpStatus.NOT_FOUND, 'MRT not found');
   }
 
-  Object.assign(mrt, { ...updateBody, updatedBy: userId });
+  const nextIsAbsent = updateBody.isAbsent ?? mrt.isAbsent;
+  if (nextIsAbsent) {
+    Object.assign(mrt, { ...updateBody, ...ABSENT_SCORES, isAbsent: true, updatedBy: userId });
+  } else {
+    if (mrt.isAbsent && !hasAllScoreFields(updateBody)) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Scores are required when marking an absent MRT as present'
+      );
+    }
+    Object.assign(mrt, { ...updateBody, isAbsent: false, updatedBy: userId });
+  }
+
   await mrt.save();
   return mrt.populate(mrtPopulate);
 };

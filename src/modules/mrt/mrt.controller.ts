@@ -62,7 +62,10 @@ export const deleteMRT = catchAsync(async (req: Request, res: Response) => {
  * @access Public
  */
 export const getMRTs = catchAsync(async (req: Request, res: Response) => {
-  const filter = pick(req.query, ['month', 'classId', 'studentId', 'courseId']);
+  const filter = pick(req.query, ['month', 'classId', 'studentId', 'courseId', 'isAbsent']);
+  if (filter['isAbsent'] !== undefined) {
+    filter['isAbsent'] = filter['isAbsent'] === true || filter['isAbsent'] === 'true';
+  }
   const options: IOptions = pick(req.query, ['sortBy', 'sortOrder', 'limit', 'page']);
 
   const result = await mrtService.queryMRTs(filter, options);

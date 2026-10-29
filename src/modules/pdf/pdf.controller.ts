@@ -92,6 +92,7 @@ export class PDFController {
         month: moment(month as string).format('MMM YYYY'),
         mrtData: mrtData
           ? {
+              isAbsent: Boolean(mrtData.isAbsent),
               regularity: mrtData.regularity,
               learningSpeed: mrtData.learningSpeed,
               theory: mrtData.theory,

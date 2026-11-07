@@ -72,6 +72,10 @@ router
   );
 
 router
+  .route('/:userId/profile-card')
+  .post(auth('updateProfile'), validate(userValidation.completeProfileCard), userController.completeProfileCard);
+
+router
   .route('/:userId')
   .get(auth('getUsers'), validate(userValidation.getUser), userController.getUser)
   .patch(auth('updateProfile'), validate(userValidation.updateUser), userController.updateUser)

@@ -6,6 +6,16 @@ import paginate from '../paginate/paginate';
 import { roles } from '../../config/roles';
 import { IUserDoc, IUserModel } from './user.interfaces';
 import { isValidRollNumber, ROLL_NUMBER_ERROR_MESSAGE } from './rollNumber.util';
+import { GENDERS, REFERRAL_SOURCES } from './admission.constants';
+
+/** Required only while creating a student, so existing records can still be saved. */
+const requiredForNewStudent = (message: string) =>
+  [
+    function (this: IUserDoc) {
+      return this.role === 'student' && this.isNew;
+    },
+    message,
+  ] as [ (this: IUserDoc) => boolean, string ];
 
 const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
   {
@@ -154,27 +164,56 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
         }
       },
     },
+    dateOfBirth: {
+      type: Date,
+      required: requiredForNewStudent('Date of birth is required for students'),
+    },
+    occupation: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      required: requiredForNewStudent('Occupation is required for students'),
+    },
+    whatsappNumber: {
+      type: String,
+      trim: true,
+      required: requiredForNewStudent('WhatsApp number is required for students'),
+      validate(value: string) {
+        if (value && !/^\+?[\d\s-()]+$/.test(value)) {
+          throw new Error('Invalid WhatsApp number');
+        }
+      },
+    },
+    gender: {
+      type: String,
+      enum: GENDERS,
+      required: requiredForNewStudent('Gender is required for students'),
+    },
     address: {
-      street: {
-        type: String,
-        trim: true,
-      },
-      city: {
-        type: String,
-        trim: true,
-      },
-      state: {
-        type: String,
-        trim: true,
-      },
-      zipCode: {
-        type: String,
-        trim: true,
-      },
-      country: {
-        type: String,
-        trim: true,
-      },
+      type: String,
+      trim: true,
+      maxlength: 500,
+      required: requiredForNewStudent('Address is required for students'),
+    },
+    referralSource: {
+      type: String,
+      enum: REFERRAL_SOURCES,
+      required: requiredForNewStudent('How did you hear about us is required for students'),
+    },
+    referralSourceOther: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+      required: [
+        function (this: IUserDoc) {
+          return this.referralSource === 'other';
+        },
+        'Please specify how you heard about us',
+      ],
+    },
+    dateOfJoining: {
+      type: Date,
+      required: requiredForNewStudent('Date of joining is required for students'),
     },
     emergencyContact: {
       name: {
@@ -189,7 +228,7 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
         type: String,
         trim: true,
         validate(value: string) {
-          if (value && !validator.isMobilePhone(value)) {
+          if (value && !/^\+?[\d\s-()]+$/.test(value)) {
             throw new Error('Invalid emergency contact phone number');
           }
         },
@@ -204,6 +243,49 @@ const userSchema = new mongoose.Schema<IUserDoc, IUserModel>(
           }
         },
       },
+    },
+    motherName: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      default: '',
+    },
+    fatherName: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      default: '',
+    },
+    guardians: {
+      type: [
+        new mongoose.Schema(
+          {
+            name: {
+              type: String,
+              required: true,
+              trim: true,
+              maxlength: 120,
+            },
+            relation: {
+              type: String,
+              required: true,
+              trim: true,
+              maxlength: 80,
+            },
+          },
+          { _id: false }
+        ),
+      ],
+      validate: {
+        validator(value: { name: string }[]) {
+          return value.length <= 3;
+        },
+        message: 'A student can have at most 3 guardians',
+      },
+    },
+    isProfileCardComplete: {
+      type: Boolean,
+      default: false,
     },
     // Relationship fields
     classes: [

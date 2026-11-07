@@ -1,6 +1,12 @@
 import mongoose, { Model, Document } from 'mongoose';
 import { QueryResult } from '../paginate/paginate';
 import { AccessAndRefreshTokens } from '../token/token.interfaces';
+import { Gender, ReferralSource } from './admission.constants';
+
+export interface IGuardian {
+  name: string;
+  relation: string;
+}
 
 export interface IUser {
   name: string;
@@ -21,19 +27,28 @@ export interface IUser {
   isCompleteProfile: boolean;
   profilePicture?: string;
   phoneNumber?: string;
-  address?: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
+  /** Single-line residential address. Required when adding a student. */
+  address?: string;
+  dateOfBirth?: Date;
+  occupation?: string;
+  whatsappNumber?: string;
+  gender?: Gender;
+  /** How the student heard about the academy. `other` requires referralSourceOther. */
+  referralSource?: ReferralSource;
+  referralSourceOther?: string;
+  dateOfJoining?: Date;
   emergencyContact?: {
     name: string;
     relationship: string;
     phone: string;
     email: string;
   };
+  /** Collected on the profile card when the student is 15 or younger. */
+  motherName?: string;
+  fatherName?: string;
+  guardians?: IGuardian[];
+  /** Set after the student submits the profile card with the required details. */
+  isProfileCardComplete: boolean;
   // Relationship fields
   classes?: mongoose.Types.ObjectId[];
   courses?: mongoose.Types.ObjectId[];

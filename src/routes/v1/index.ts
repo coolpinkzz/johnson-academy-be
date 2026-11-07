@@ -18,6 +18,7 @@ import appVersionRoute from './appVersion.route';
 import compensationRoute from './compensation.route';
 import pushRoute from './push.route';
 import studentFeeRoute from './studentFee.route';
+import ticketRoute from './ticket.route';
 
 const router = express.Router();
 
@@ -94,6 +95,10 @@ const defaultIRoute: IRoute[] = [
   {
     path: '/student-fees',
     route: studentFeeRoute,
+  },
+  {
+    path: '/tickets',
+    route: ticketRoute,
   },
 ];
 

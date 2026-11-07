@@ -3,6 +3,7 @@ import { password, objectId, rollNumber } from '../validate/custom.validation';
 import { NewCreatedUser } from './user.interfaces';
 import { BRANCH_QUERY_VALUES } from './rollNumber.util';
 import { roles } from '../../config/roles';
+import { studentAdmissionCreateFields, studentAdmissionUpdateFields } from './admission.validation';
 
 const branchAccessNumbers = BRANCH_QUERY_VALUES.map((v) => Number(v));
 
@@ -14,7 +15,20 @@ const branchAccessSchema = Joi.array()
     'any.required': 'branchAccess is required for admin and aqsd users',
   });
 
-const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 'progress' | 'isCompleteProfile'>, any> = {
+const guardianInput = Joi.object({
+  name: Joi.string().trim().min(1).max(120).required(),
+  relation: Joi.string().trim().min(1).max(80).required(),
+});
+
+const profileCardGuardianInput = Joi.object({
+  name: Joi.string().trim().max(120).allow(''),
+  relation: Joi.string().trim().max(80).allow(''),
+});
+
+const createUserBody: Record<
+  keyof Omit<NewCreatedUser, 'classes' | 'courses' | 'progress' | 'isCompleteProfile' | 'isProfileCardComplete'>,
+  any
+> = {
   email: Joi.string().required().email(),
   password: Joi.string().required().custom(password),
   name: Joi.string().required(),
@@ -46,28 +60,22 @@ const createUserBody: Record<keyof Omit<NewCreatedUser, 'classes' | 'courses' | 
     otherwise: Joi.optional(),
   }),
   subjects: Joi.array().items(Joi.string()),
-  enrollmentDate: Joi.date().when('role', {
-    is: 'student',
-    then: Joi.required(),
-    otherwise: Joi.optional(),
-  }),
+  // Copied from dateOfJoining when a student is created.
+  enrollmentDate: Joi.date().optional(),
   graduationDate: Joi.date(),
   isActive: Joi.boolean(),
   profilePicture: Joi.string().uri().allow('').optional(),
   phoneNumber: Joi.string().pattern(/^\+?[\d\s-()]+$/),
-  address: Joi.object({
-    street: Joi.string(),
-    city: Joi.string(),
-    state: Joi.string(),
-    zipCode: Joi.string(),
-    country: Joi.string(),
-  }),
+  ...studentAdmissionCreateFields,
   emergencyContact: Joi.object({
     name: Joi.string(),
     relationship: Joi.string(),
     phone: Joi.string().pattern(/^\+?[\d\s-()]+$/),
     email: Joi.string().email(),
   }),
+  motherName: Joi.string().trim().max(120).allow(''),
+  fatherName: Joi.string().trim().max(120).allow(''),
+  guardians: Joi.array().max(3).items(guardianInput),
 };
 
 export const createUser = {
@@ -113,8 +121,34 @@ export const updateUser = {
       phoneNumber: Joi.string().pattern(/^\+?[\d\s-()]+$/).allow(''),
       isActive: Joi.boolean(),
       isCompleteProfile: Joi.boolean().optional(),
+      ...studentAdmissionUpdateFields,
+      emergencyContact: Joi.object({
+        name: Joi.string().trim().allow(''),
+        relationship: Joi.string().trim().allow(''),
+        phone: Joi.string()
+          .trim()
+          .pattern(/^\+?[\d\s-()]+$/)
+          .messages({
+            'string.pattern.base': 'Emergency contact number must be a valid phone number',
+          }),
+        email: Joi.string().trim().email().allow(''),
+      }),
+      motherName: Joi.string().trim().max(120).allow(''),
+      fatherName: Joi.string().trim().max(120).allow(''),
+      guardians: Joi.array().max(3).items(guardianInput),
     })
     .min(1),
+};
+
+export const completeProfileCard = {
+  params: Joi.object().keys({
+    userId: Joi.string().custom(objectId).required(),
+  }),
+  body: Joi.object().keys({
+    motherName: Joi.string().trim().max(120).allow(''),
+    fatherName: Joi.string().trim().max(120).allow(''),
+    guardians: Joi.array().max(3).items(profileCardGuardianInput),
+  }),
 };
 
 export const updateProfilePicture = {

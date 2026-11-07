@@ -13,6 +13,21 @@ import { IUserDoc } from './user.interfaces';
 const isStaffRole = (role: unknown): role is (typeof staffRoles)[number] =>
   typeof role === 'string' && (staffRoles as readonly string[]).includes(role);
 
+const STUDENT_PROFILE_FIELDS = [
+  'name',
+  'phoneNumber',
+  'profilePicture',
+  'dateOfBirth',
+  'occupation',
+  'whatsappNumber',
+  'gender',
+  'address',
+  'referralSource',
+  'referralSourceOther',
+  'dateOfJoining',
+  'emergencyContact',
+];
+
 const assertCanViewStudent = (actor: IUserDoc | undefined, rollNumber?: string | null) => {
   if (!actor) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate');
@@ -89,6 +104,13 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
   const targetUserId = new mongoose.Types.ObjectId(req.params['userId']);
   const actor = req.user;
 
+  if (actor?.role === 'student') {
+    if (!actor._id.equals(targetUserId)) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'You can only update your own profile');
+    }
+    req.body = pick(req.body, STUDENT_PROFILE_FIELDS);
+  }
+
   if (req.body.role !== undefined) {
     if (actor?.role !== 'master') {
       throw new ApiError(httpStatus.FORBIDDEN, 'Only master can change staff roles');
@@ -149,6 +171,45 @@ export const updateProfilePicture = catchAsync(async (req: Request, res: Respons
   await assertCanUpdateProfilePicture(req.user, targetUserId);
 
   const user = await userService.updateProfilePictureById(targetUserId, req.file);
+  res.send(user);
+});
+
+const assertCanCompleteProfileCard = async (actor: IUserDoc | undefined, targetUserId: mongoose.Types.ObjectId) => {
+  if (!actor) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate');
+  }
+
+  if (actor._id.equals(targetUserId)) {
+    return;
+  }
+
+  if (!isStaffRole(actor.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'You can only update your own profile card');
+  }
+
+  const targetUser = await userService.getUserById(targetUserId);
+  if (!targetUser) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  if (targetUser.role === 'student') {
+    assertCanViewStudent(actor, targetUser.rollNumber);
+  }
+};
+
+export const completeProfileCard = catchAsync(async (req: Request, res: Response) => {
+  if (typeof req.params['userId'] !== 'string') {
+    return;
+  }
+
+  const targetUserId = new mongoose.Types.ObjectId(req.params['userId']);
+  await assertCanCompleteProfileCard(req.user, targetUserId);
+
+  const user = await userService.completeStudentProfileCard(targetUserId, {
+    motherName: req.body.motherName,
+    fatherName: req.body.fatherName,
+    guardians: req.body.guardians,
+  });
   res.send(user);
 });
 

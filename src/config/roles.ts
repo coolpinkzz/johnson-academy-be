@@ -47,6 +47,9 @@ const noticeBoardRights = ['getNotices', 'manageNotices'] as const;
 /** Packages & payments — master and admin only (admin is branch-scoped in the controller). */
 const studentFeeRights = ['getStudentFees', 'manageStudentFees'] as const;
 
+/** Student concerns. Staff share one academy-wide queue. */
+const ticketStaffRights = ['getTickets', 'manageTickets'] as const;
+
 const allRoles = {
   admin: [
     ...dashboardRights,
@@ -57,6 +60,7 @@ const allRoles = {
     ...monthlyReportRights,
     ...compensationRights,
     ...studentFeeRights,
+    ...ticketStaffRights,
     ...profileRights,
     'getAssignments',
   ],
@@ -68,6 +72,7 @@ const allRoles = {
     ...attendanceRights,
     ...monthlyReportRights,
     ...compensationRights,
+    ...ticketStaffRights,
     ...profileRights,
     'getAssignments',
   ],
@@ -81,6 +86,7 @@ const allRoles = {
     ...compensationRights,
     ...noticeBoardRights,
     ...studentFeeRights,
+    ...ticketStaffRights,
     ...profileRights,
     'getAssignments',
   ],
@@ -123,6 +129,8 @@ const allRoles = {
     'getAssignments',
     'getCompensationBookings',
     'manageCompensationBookings',
+    'createTickets',
+    'getTickets',
   ],
 };
 

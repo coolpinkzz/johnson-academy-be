@@ -1,6 +1,7 @@
 import Joi from 'joi';
 import { password, rollNumber } from '../validate/custom.validation';
 import { roles } from '../../config/roles';
+import { studentAdmissionCreateFields } from '../user/admission.validation';
 
 const registerBody = {
   email: Joi.string().required().email(),
@@ -20,13 +21,7 @@ const registerBody = {
   phoneNumber: Joi.string()
     .pattern(/^\+?[\d\s-()]+$/)
     .optional(),
-  address: Joi.object({
-    street: Joi.string(),
-    city: Joi.string(),
-    state: Joi.string(),
-    zipCode: Joi.string(),
-    country: Joi.string(),
-  }).optional(),
+  ...studentAdmissionCreateFields,
   emergencyContact: Joi.object({
     name: Joi.string(),
     relationship: Joi.string(),

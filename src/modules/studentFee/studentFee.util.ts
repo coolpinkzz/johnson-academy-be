@@ -78,6 +78,33 @@ export const getRenewalStatus = (
   return 'active';
 };
 
+/** Renewal status plus "no valid package". Worst status wins on a student row. */
+export const FEE_PROFILE_STATUSES = ['expired', 'expiring', 'active', 'upcoming', 'none'] as const;
+export type FeeProfileStatus = (typeof FEE_PROFILE_STATUSES)[number];
+
+const FEE_PROFILE_STATUS_RANK: Record<FeeProfileStatus, number> = {
+  none: 0,
+  upcoming: 1,
+  active: 2,
+  expiring: 3,
+  expired: 4,
+};
+
+/** Most urgent status across the latest valid package of each course. */
+export const worstFeeProfileStatus = (
+  packages: ReadonlyArray<{ startDate: Date; endDate: Date }>,
+  today: Date
+): FeeProfileStatus => {
+  let worst: FeeProfileStatus = 'none';
+  packages.forEach((pkg) => {
+    const status = getRenewalStatus(pkg, today);
+    if (FEE_PROFILE_STATUS_RANK[status] > FEE_PROFILE_STATUS_RANK[worst]) {
+      worst = status;
+    }
+  });
+  return worst;
+};
+
 /** Mongo match on startDate/endDate for a renewal status, relative to `today`. */
 export const buildRenewalDateFilter = (
   status: RenewalStatus,

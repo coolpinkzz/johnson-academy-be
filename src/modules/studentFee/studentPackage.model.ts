@@ -116,6 +116,7 @@ const studentPackageSchema = new mongoose.Schema<IStudentPackageDoc, IStudentPac
 );
 
 studentPackageSchema.index({ studentId: 1, courseId: 1, startDate: -1 });
+studentPackageSchema.index({ studentId: 1, state: 1, endDate: -1, startDate: -1 });
 studentPackageSchema.index({ state: 1, endDate: 1 });
 
 studentPackageSchema.plugin(toJSON);

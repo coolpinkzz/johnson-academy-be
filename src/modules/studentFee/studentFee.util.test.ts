@@ -5,6 +5,7 @@ import {
   calculatePaymentTotals,
   getRenewalStatus,
   normalizePaymentReference,
+  worstFeeProfileStatus,
 } from './studentFee.util';
 
 const d = (ymd: string): Date => new Date(`${ymd}T00:00:00.000Z`);
@@ -82,6 +83,44 @@ describe('getRenewalStatus', () => {
 
   test('expired the day after the end date', () => {
     expect(getRenewalStatus(pkg, d('2027-05-01'))).toBe('expired');
+  });
+});
+
+describe('worstFeeProfileStatus', () => {
+  const today = d('2026-11-14');
+
+  test('no valid package is none', () => {
+    expect(worstFeeProfileStatus([], today)).toBe('none');
+  });
+
+  test('uses the 30-day expiring window', () => {
+    expect(worstFeeProfileStatus([{ startDate: d('2026-05-01'), endDate: d('2026-12-14') }], today)).toBe('expiring');
+    expect(worstFeeProfileStatus([{ startDate: d('2026-05-01'), endDate: d('2026-12-15') }], today)).toBe('active');
+  });
+
+  test('expired beats every other course', () => {
+    expect(
+      worstFeeProfileStatus(
+        [
+          { startDate: d('2026-05-01'), endDate: d('2027-04-30') },
+          { startDate: d('2026-01-01'), endDate: d('2026-10-31') },
+          { startDate: d('2026-12-01'), endDate: d('2027-11-30') },
+        ],
+        today
+      )
+    ).toBe('expired');
+  });
+
+  test('expiring beats active and upcoming', () => {
+    expect(
+      worstFeeProfileStatus(
+        [
+          { startDate: d('2026-05-01'), endDate: d('2027-04-30') },
+          { startDate: d('2026-11-01'), endDate: d('2026-12-01') },
+        ],
+        today
+      )
+    ).toBe('expiring');
   });
 });
 

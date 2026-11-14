@@ -34,8 +34,10 @@ import {
   calculatePackageEndDate,
   calculatePaymentTotals,
   daysBetween,
+  FeeProfileStatus,
   getRenewalStatus,
   normalizePaymentReference,
+  worstFeeProfileStatus,
 } from './studentFee.util';
 
 type ObjectId = mongoose.Types.ObjectId;
@@ -601,6 +603,49 @@ const buildStudentMatch = (filter: PackageListFilter): Record<string, unknown>[]
     });
   }
   return clauses;
+};
+
+type LatestCoursePackage = {
+  _id: { studentId: ObjectId; courseId: ObjectId };
+  startDate: Date;
+  endDate: Date;
+};
+
+/**
+ * One status per student for a page of the student list.
+ * Latest valid package per course, then the most urgent of those. No payments.
+ */
+export const getFeeProfileStatusByStudent = async (studentIds: ObjectId[]): Promise<Map<string, FeeProfileStatus>> => {
+  const statuses = new Map<string, FeeProfileStatus>();
+  if (studentIds.length === 0) return statuses;
+
+  const today = todayInIndia();
+  const latest = await StudentPackage.aggregate<LatestCoursePackage>([
+    { $match: { studentId: { $in: studentIds }, state: 'valid' } },
+    { $sort: { endDate: -1, startDate: -1 } },
+    {
+      $group: {
+        _id: { studentId: '$studentId', courseId: '$courseId' },
+        startDate: { $first: '$startDate' },
+        endDate: { $first: '$endDate' },
+      },
+    },
+  ]);
+
+  const byStudent = new Map<string, Array<{ startDate: Date; endDate: Date }>>();
+  latest.forEach((row) => {
+    const studentId = row._id.studentId.toString();
+    const packages = byStudent.get(studentId) ?? [];
+    packages.push({ startDate: row.startDate, endDate: row.endDate });
+    byStudent.set(studentId, packages);
+  });
+
+  studentIds.forEach((studentId) => {
+    const key = studentId.toString();
+    statuses.set(key, worstFeeProfileStatus(byStudent.get(key) ?? [], today));
+  });
+
+  return statuses;
 };
 
 /**

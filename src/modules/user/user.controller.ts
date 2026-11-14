@@ -6,12 +6,41 @@ import ApiError from '../errors/ApiError';
 import pick from '../utils/pick';
 import { IOptions } from '../paginate/paginate';
 import * as userService from './user.service';
-import { staffRoles } from '../../config/roles';
+import { roleRights, staffRoles } from '../../config/roles';
+import { studentFeeService } from '../studentFee';
 import { canAccessStudentRollNumber, resolveStudentBranchScope } from './rollNumber.util';
 import { IUserDoc } from './user.interfaces';
 
 const isStaffRole = (role: unknown): role is (typeof staffRoles)[number] =>
   typeof role === 'string' && (staffRoles as readonly string[]).includes(role);
+
+const canReadStudentFees = (role: string | undefined): boolean =>
+  role != null && (roleRights.get(role)?.includes('getStudentFees') ?? false);
+
+const isJsonSerializable = (user: unknown): user is { toJSON: () => unknown } =>
+  user != null &&
+  typeof user === 'object' &&
+  'toJSON' in user &&
+  typeof (user as { toJSON?: unknown }).toJSON === 'function';
+
+const toPlainUser = (user: unknown): Record<string, unknown> => {
+  if (isJsonSerializable(user)) {
+    const plain = user.toJSON();
+    if (plain != null && typeof plain === 'object') return plain as Record<string, unknown>;
+  }
+  if (user != null && typeof user === 'object') return { ...(user as Record<string, unknown>) };
+  return {};
+};
+
+const readUserId = (user: Record<string, unknown>): string | undefined => {
+  if (typeof user['id'] === 'string') return user['id'];
+  const rawId = user['_id'];
+  if (typeof rawId === 'string') return rawId;
+  if (rawId != null && typeof rawId === 'object' && 'toString' in rawId && typeof rawId.toString === 'function') {
+    return rawId.toString();
+  }
+  return undefined;
+};
 
 const STUDENT_PROFILE_FIELDS = [
   'name',
@@ -80,6 +109,20 @@ export const getUsers = catchAsync(async (req: Request, res: Response) => {
   applyStudentBranchAccess(req, filter);
   const options: IOptions = pick(req.query, ['sortBy', 'limit', 'page', 'projectBy']);
   const result = await userService.queryUsers(filter, options);
+
+  if (filter['role'] === 'student' && canReadStudentFees(req.user?.role) && result.results.length > 0) {
+    const users = result.results.map(toPlainUser);
+    const studentIds = users.flatMap((user) => {
+      const id = readUserId(user);
+      return id && mongoose.Types.ObjectId.isValid(id) ? [new mongoose.Types.ObjectId(id)] : [];
+    });
+    const statuses = await studentFeeService.getFeeProfileStatusByStudent(studentIds);
+    result.results = users.map((user) => {
+      const id = readUserId(user);
+      return { ...user, feeProfileStatus: id ? (statuses.get(id) ?? 'none') : 'none' };
+    }) as unknown as typeof result.results;
+  }
+
   res.send(result);
 });
 

@@ -4,12 +4,14 @@ type ProfileFields = {
   dateOfBirth?: Date | string | null;
   gender?: string | null;
   occupation?: string | null;
-  dateOfJoining?: Date | string | null;
   referralSource?: string | null;
   referralSourceOther?: string | null;
   address?: string | null;
+  whatsappNumber?: string | null;
   emergencyContact?: { phone?: string | null } | null;
 };
+
+const phoneDigits = (value?: string | null): string => (value ?? '').replace(/\D/g, '');
 
 const isGender = (value: string | null | undefined): value is Gender =>
   !!value && (GENDERS as readonly string[]).includes(value);
@@ -118,18 +120,17 @@ export const profileCardStillValid = (user: ProfileCardFields, today = new Date(
   return Boolean(user.motherName?.trim() && user.fatherName?.trim());
 };
 
-/** Admission details a student must submit before the student app opens. */
+/** Admission details a student must submit before the profile card opens. */
 export const isStudentProfileComplete = (user: ProfileFields): boolean => {
   const otherOk = user.referralSource !== 'other' || Boolean(user.referralSourceOther?.trim());
-  const phoneDigits = (user.emergencyContact?.phone ?? '').replace(/\D/g, '');
   return Boolean(
     user.dateOfBirth &&
       isGender(user.gender) &&
       user.occupation?.trim() &&
-      user.dateOfJoining &&
       isReferralSource(user.referralSource) &&
       otherOk &&
       user.address?.trim() &&
-      phoneDigits.length >= 8
+      phoneDigits(user.whatsappNumber).length >= 8 &&
+      phoneDigits(user.emergencyContact?.phone).length >= 8
   );
 };

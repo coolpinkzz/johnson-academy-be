@@ -53,7 +53,6 @@ const STUDENT_PROFILE_FIELDS = [
   'address',
   'referralSource',
   'referralSourceOther',
-  'dateOfJoining',
   'emergencyContact',
 ];
 

@@ -1,5 +1,6 @@
 import {
   ageInYears,
+  isStudentProfileComplete,
   parseGuardians,
   profileCardStillValid,
   requiresParentDetails,
@@ -62,10 +63,7 @@ describe('profile card guardians', () => {
 describe('profileCardStillValid', () => {
   test('accepts a picture alone when the student is over 15', () => {
     expect(
-      profileCardStillValid(
-        { profilePicture: 'https://cdn.example/photo.jpg', dateOfBirth: '2010-11-07' },
-        today
-      )
+      profileCardStillValid({ profilePicture: 'https://cdn.example/photo.jpg', dateOfBirth: '2010-11-07' }, today)
     ).toBe(true);
   });
 
@@ -94,8 +92,27 @@ describe('profileCardStillValid', () => {
   });
 
   test('requires a profile picture for every age', () => {
-    expect(
-      profileCardStillValid({ profilePicture: '  ', dateOfBirth: '2010-11-07' }, today)
-    ).toBe(false);
+    expect(profileCardStillValid({ profilePicture: '  ', dateOfBirth: '2010-11-07' }, today)).toBe(false);
+  });
+});
+
+describe('isStudentProfileComplete', () => {
+  const complete = {
+    dateOfBirth: '2010-01-01',
+    gender: 'male',
+    occupation: 'Student',
+    referralSource: 'google',
+    address: '1 Main Street',
+    whatsappNumber: '9876543210',
+    emergencyContact: { phone: '9876543210' },
+  };
+
+  test('accepts a student who filled every admission field', () => {
+    expect(isStudentProfileComplete(complete)).toBe(true);
+  });
+
+  test('rejects a student missing WhatsApp or emergency phone', () => {
+    expect(isStudentProfileComplete({ ...complete, whatsappNumber: '' })).toBe(false);
+    expect(isStudentProfileComplete({ ...complete, emergencyContact: { phone: '123' } })).toBe(false);
   });
 });

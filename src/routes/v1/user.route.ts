@@ -11,10 +11,18 @@ router
   .get(auth('getUsers'), validate(userValidation.getUsers), userController.getUsers);
 
 router
+  .route('/deletion-history')
+  .get(auth('getUsers'), validate(userValidation.getDeletionHistory), userController.getDeletionHistory);
+
+router
+  .route('/:userId/restore')
+  .post(auth('restoreUsers'), validate(userValidation.restoreUser), userController.restoreUser);
+
+router
   .route('/:userId')
   .get(auth('getUsers'), validate(userValidation.getUser), userController.getUser)
   .patch(auth('manageUsers'), validate(userValidation.updateUser), userController.updateUser)
-  .delete(auth('manageUsers'), validate(userValidation.deleteUser), userController.deleteUser);
+  .delete(auth('deleteUsers'), validate(userValidation.deleteUser), userController.deleteUser);
 
 export default router;
 

@@ -82,6 +82,7 @@ describe('User routes', () => {
         email: newUser.email,
         role: newUser.role,
         isEmailVerified: false,
+        isActive: true,
       });
 
       const dbUser = await User.findById(res.body.id);
@@ -212,6 +213,7 @@ describe('User routes', () => {
         email: userOne.email,
         role: userOne.role,
         isEmailVerified: userOne.isEmailVerified,
+        isActive: true,
       });
     });
 
@@ -272,6 +274,23 @@ describe('User routes', () => {
       expect(res.body.results).toHaveLength(2);
       expect(res.body.results[0].id).toBe(userOne._id.toHexString());
       expect(res.body.results[1].id).toBe(userTwo._id.toHexString());
+    });
+
+    test('should filter students by their latest fee-package status', async () => {
+      await insertUsers([{ ...userOne, role: 'student' }, admin]);
+
+      const res = await request(app)
+        .get('/v1/users')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .query({ role: 'student', feeProfileStatus: 'none' })
+        .send()
+        .expect(httpStatus.OK);
+
+      expect(res.body.totalResults).toBe(1);
+      expect(res.body.results[0]).toMatchObject({
+        id: userOne._id.toHexString(),
+        feeProfileStatus: 'none',
+      });
     });
 
     test('should correctly sort the returned array if descending sort param is specified', async () => {
@@ -415,6 +434,7 @@ describe('User routes', () => {
         name: userOne.name,
         role: userOne.role,
         isEmailVerified: userOne.isEmailVerified,
+        isActive: true,
       });
     });
 
@@ -476,7 +496,9 @@ describe('User routes', () => {
         .expect(httpStatus.NO_CONTENT);
 
       const dbUser = await User.findById(userOne._id);
-      expect(dbUser).toBeNull();
+      expect(dbUser?.deletedAt).toBeInstanceOf(Date);
+      expect(dbUser?.isActive).toBe(false);
+      expect(dbUser?.deletionHistory).toHaveLength(1);
     });
 
     test('should return 401 error if access token is missing', async () => {
@@ -503,6 +525,45 @@ describe('User routes', () => {
         .set('Authorization', `Bearer ${adminAccessToken}`)
         .send()
         .expect(httpStatus.NO_CONTENT);
+    });
+
+    test('should list deletion history and restore the student without removing the audit event', async () => {
+      await insertUsers([{ ...userOne, role: 'student' }, admin]);
+      await request(app)
+        .delete(`/v1/users/${userOne._id}`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send()
+        .expect(httpStatus.NO_CONTENT);
+
+      const history = await request(app)
+        .get('/v1/users/deletion-history?role=student')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send()
+        .expect(httpStatus.OK);
+      expect(history.body.results).toHaveLength(1);
+
+      const allHistory = await request(app)
+        .get('/v1/users/deletion-history')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send()
+        .expect(httpStatus.OK);
+      expect(allHistory.body.results[0]).toMatchObject({
+        userId: userOne._id.toString(),
+        canRestore: true,
+        deletedByName: admin.name,
+      });
+
+      await request(app)
+        .post(`/v1/users/${userOne._id}/restore`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send()
+        .expect(httpStatus.OK);
+
+      const restored = await User.findById(userOne._id);
+      expect(restored?.deletedAt).toBeNull();
+      expect(restored?.isActive).toBe(true);
+      expect(restored?.deletionHistory).toHaveLength(1);
+      expect(restored?.deletionHistory?.[0]?.restoredAt).toBeInstanceOf(Date);
     });
 
     test('should return 400 error if userId is not a valid mongo id', async () => {
@@ -548,6 +609,7 @@ describe('User routes', () => {
         email: updateBody.email,
         role: 'user',
         isEmailVerified: false,
+        isActive: true,
       });
 
       const dbUser = await User.findById(userOne._id);

@@ -14,7 +14,11 @@ const jwtStrategy = new JwtStrategy(
       if (payload.type !== tokenTypes.ACCESS) {
         throw new Error('Invalid token type');
       }
-      const user = await User.findById(payload.sub);
+      const user = await User.findOne({
+        _id: payload.sub,
+        deletedAt: null,
+        isActive: { $ne: false },
+      });
       if (!user) {
         return done(null, false);
       }

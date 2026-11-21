@@ -8,6 +8,43 @@ export interface IUser {
   password: string;
   role: string;
   isEmailVerified: boolean;
+  isActive?: boolean;
+  rollNumber?: string;
+  branch?: string;
+  phoneNumber?: string;
+  whatsappNumber?: string;
+  profilePicture?: string;
+  dateOfBirth?: string;
+  occupation?: string;
+  gender?: string;
+  address?: string;
+  referralSource?: string;
+  referralSourceOther?: string;
+  dateOfJoining?: string;
+  motherName?: string;
+  fatherName?: string;
+  guardians?: { name: string; relation: string }[];
+  courses?: { id: string; name: string; instrument?: string }[];
+  emergencyContact?: {
+    name?: string;
+    relationship?: string;
+    phone?: string;
+    email?: string;
+  };
+  isCompleteProfile?: boolean;
+  isProfileCardComplete?: boolean;
+  deletedAt?: Date | null;
+  deletedBy?: mongoose.Types.ObjectId | null;
+  createdAt?: Date;
+  deletionHistory?: {
+    deletedAt: Date;
+    deletedBy: mongoose.Types.ObjectId;
+    deletedByName: string;
+    restoredAt: Date | null;
+    restoredBy: mongoose.Types.ObjectId | null;
+    restoredByName: string | null;
+    wasActive: boolean;
+  }[];
 }
 
 export interface IUserDoc extends IUser, Document {

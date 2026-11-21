@@ -228,6 +228,12 @@ EMAIL_FROM=support@yourapp.com
 CLIENT_URL=http://localhost:5000
 ```
 
+### Live Google Sheets sync
+
+Set `GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON` to the complete service-account JSON in the backend deployment's secret manager. Set `GOOGLE_SHEETS_SPREADSHEET_ID` to sync an existing spreadsheet; if it is blank, the backend creates a private spreadsheet on the first write or when an authorized staff member opens the Live Sheets page and stores its generated ID in MongoDB. The backend keeps the Students, Teachers, Fee Packages, and Deletion History tabs in sync. Active staff accounts are granted read-only spreadsheet access.
+
+Do not commit service-account credentials. `GOOGLE_SHEETS_SPREADSHEET_ID` is optional and is only needed to use an existing spreadsheet; it accepts either the spreadsheet ID or its editable `https://docs.google.com/spreadsheets/d/<id>/edit` URL. Share that spreadsheet with the service-account email as an Editor. Published `/pubhtml` links are read-only and cannot be used for backend sync. The Google Sheets and Google Drive APIs must be enabled for the service-account project.
+
 ## Project Structure
 
 ```

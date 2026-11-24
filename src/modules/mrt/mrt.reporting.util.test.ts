@@ -11,7 +11,13 @@ import {
   completionPercentage,
   enumerateMonths,
   normalizeReportingMonth,
+  listStudentLeaderboardMonths,
   paginateFacts,
+  pickStudentScoresForMonth,
+  rankStudentScores,
+  resolveStudentLeaderboardMonth,
+  resolveViewerLeaderboardBranch,
+  resolveViewerLeaderboardInstrument,
   resolveMonthRange,
   resolveReportingBranches,
   sortLeaderboard,
@@ -336,5 +342,124 @@ describe('branch access', () => {
       'You do not have access to this branch'
     );
     expect(resolveReportingBranches({ role: 'admin', branchAccess: [] })).toEqual({ branches: [] });
+  });
+});
+
+describe('student score leaderboard', () => {
+  test('uses only the requested month and drops absent reports', () => {
+    const enrollments = [
+      enrollment({
+        reports: [
+          { month: '2026-01', submittedAt: null, mrtId: 'old', totalScore: 28, averageScore: 5 },
+          { month: '2026-03', submittedAt: null, mrtId: 'absent', isAbsent: true, totalScore: 0, averageScore: 0 },
+          { month: '03-2026', submittedAt: null, mrtId: 'latest', totalScore: 18, averageScore: 3 },
+        ],
+      }),
+    ];
+    expect(pickStudentScoresForMonth(enrollments, '2026-03')).toEqual([
+      expect.objectContaining({ totalScore: 18, averageScore: 3, month: '2026-03' }),
+    ]);
+    expect(pickStudentScoresForMonth(enrollments, '2026-01')).toEqual([
+      expect.objectContaining({ totalScore: 28, month: '2026-01' }),
+    ]);
+  });
+
+  test('keeps the higher score when a student has two enrollments in the same month', () => {
+    const rows = pickStudentScoresForMonth(
+      [
+        enrollment({
+          courseId: 'guitar',
+          instrument: 'Guitar',
+          reports: [{ month: '2026-04', submittedAt: null, mrtId: 'g', totalScore: 30, averageScore: 5 }],
+        }),
+        enrollment({
+          courseId: 'piano',
+          instrument: 'Piano',
+          reports: [{ month: '2026-04', submittedAt: null, mrtId: 'p', totalScore: 12, averageScore: 2 }],
+        }),
+      ],
+      '2026-04'
+    );
+    expect(rows).toEqual([
+      expect.objectContaining({ studentId: 's1', instrument: 'Guitar', totalScore: 30, month: '2026-04' }),
+    ]);
+  });
+
+  test('keeps the roll-number branch and the latest instrument', () => {
+    const classBranches = [
+      { branch: '5', branchName: 'Branch 5' },
+      { branch: '2', branchName: 'Branch 2' },
+      { branch: '3', branchName: 'Branch 3' },
+    ];
+    expect(resolveViewerLeaderboardBranch(classBranches, 'JA/0626/2143')).toEqual({
+      branch: '2',
+      branchName: 'Branch 2',
+    });
+    expect(resolveViewerLeaderboardBranch(classBranches, null)).toEqual(classBranches[0]);
+    expect(resolveViewerLeaderboardInstrument(['Guitar', 'Piano'])).toBe('Guitar');
+  });
+
+  test('defaults to last month and lists the previous year newest first', () => {
+    const months = listStudentLeaderboardMonths(new Date('2026-11-15T04:30:00.000Z'));
+    expect(months[0]).toEqual({ month: '2026-10', label: 'Oct 2026' });
+    expect(months[1]?.month).toBe('2026-09');
+    expect(months).toHaveLength(12);
+    expect(months[months.length - 1]?.month).toBe('2025-11');
+    expect(resolveStudentLeaderboardMonth(undefined, months)).toBe('2026-10');
+    expect(resolveStudentLeaderboardMonth('2026-04', months)).toBe('2026-04');
+    expect(() => resolveStudentLeaderboardMonth('2026-11', months)).toThrow('earlier month');
+  });
+
+  test('ranks highest score first and marks the current student', () => {
+    const ranked = rankStudentScores(
+      [
+        {
+          studentId: 's2',
+          studentName: 'Zara',
+          profilePicture: null,
+          classId: 'c1',
+          className: 'Guitar A',
+          branch: '1',
+          branchName: 'Branch 1',
+          instrument: 'Guitar',
+          totalScore: 20,
+          averageScore: 3,
+          month: '2026-03',
+        },
+        {
+          studentId: 's1',
+          studentName: 'Asha',
+          profilePicture: null,
+          classId: 'c1',
+          className: 'Guitar A',
+          branch: '1',
+          branchName: 'Branch 1',
+          instrument: 'Guitar',
+          totalScore: 20,
+          averageScore: 3,
+          month: '2026-03',
+        },
+        {
+          studentId: 's3',
+          studentName: 'Dev',
+          profilePicture: null,
+          classId: 'c1',
+          className: 'Guitar A',
+          branch: '1',
+          branchName: 'Branch 1',
+          instrument: 'Guitar',
+          totalScore: 10,
+          averageScore: 2,
+          month: '2026-02',
+        },
+      ],
+      's1'
+    );
+    expect(ranked.map((row) => ({ id: row.studentId, rank: row.rank, self: row.isCurrentUser }))).toEqual([
+      { id: 's1', rank: 1, self: true },
+      { id: 's2', rank: 1, self: false },
+      { id: 's3', rank: 3, self: false },
+    ]);
+    expect(ranked[0]?.monthLabel).toBe('Mar 2026');
   });
 });

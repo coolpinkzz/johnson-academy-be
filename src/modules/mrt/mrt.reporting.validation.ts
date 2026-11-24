@@ -72,6 +72,16 @@ export const getMrtInstrumentLeaderboard = {
   }),
 };
 
+export const getStudentScoreLeaderboard = {
+  query: Joi.object().keys({
+    scope: Joi.string().valid('class', 'branch', 'instrument', 'overall').default('class'),
+    classId: Joi.string().custom(objectId),
+    branch: Joi.string().trim().max(40),
+    instrument: Joi.string().trim().max(80),
+    month,
+  }),
+};
+
 export const getMrtReportingRecords = {
   query: Joi.object().keys({
     ...reportingFilters,

@@ -1,5 +1,5 @@
 import { CLASS_BRANCH_ONLINE } from '../classes/classes.interfaces';
-import { resolveStudentBranchScope } from '../user/rollNumber.util';
+import { extractBranchFromRollNumber, resolveStudentBranchScope } from '../user/rollNumber.util';
 import {
   MAX_MONTH_OPTIONS,
   MAX_REPORTING_MONTHS,
@@ -25,7 +25,9 @@ import {
   ReportingFilterOptions,
   ReportingReport,
   ReportStatus,
+  RankedStudentScore,
   SortOrder,
+  StudentScoreRowInput,
   TeacherLeaderboardRow,
 } from './mrt.reporting.interfaces';
 
@@ -633,6 +635,130 @@ export const emptyMetrics = (): MetricSnapshot => ({
   averageTotalScore: null,
   averageScore: null,
 });
+
+/** The student's roll-number branch, otherwise the branch of their latest class. */
+export const resolveViewerLeaderboardBranch = (
+  classBranches: { branch: string; branchName: string }[],
+  rollNumber?: string | null
+): { branch: string; branchName: string } | null => {
+  const homeBranch = rollNumber ? extractBranchFromRollNumber(rollNumber) : null;
+  if (homeBranch) {
+    return (
+      classBranches.find((item) => item.branch === homeBranch) ?? {
+        branch: homeBranch,
+        branchName: formatBranchName(homeBranch),
+      }
+    );
+  }
+  return classBranches[0] ?? null;
+};
+
+/** The instrument on the student's latest enrollment. */
+export const resolveViewerLeaderboardInstrument = (instruments: string[]): string | null => instruments[0] ?? null;
+
+export const STUDENT_LEADERBOARD_MONTHS = 12;
+
+/** Last month first, then older months. The current month is not included. */
+export const listStudentLeaderboardMonths = (
+  now: Date = new Date(),
+  count: number = STUDENT_LEADERBOARD_MONTHS
+): { month: string; label: string }[] => {
+  const current = formatYearMonth(now);
+  if (!current) {
+    throw new ReportingValidationError(400, 'Unable to resolve the current reporting month');
+  }
+  const months: { month: string; label: string }[] = [];
+  let cursor = shiftMonth(current, -1);
+  for (let index = 0; index < count; index += 1) {
+    months.push({ month: cursor, label: formatMonthLabel(cursor) });
+    cursor = shiftMonth(cursor, -1);
+  }
+  return months;
+};
+
+export const resolveStudentLeaderboardMonth = (requested: string | undefined, months: { month: string }[]): string => {
+  const fallback = months[0]?.month;
+  if (!fallback) {
+    throw new ReportingValidationError(400, 'Unable to resolve the leaderboard month');
+  }
+  if (!requested) return fallback;
+  const normalized = normalizeReportingMonth(requested);
+  if (!normalized || !months.some((item) => item.month === normalized)) {
+    throw new ReportingValidationError(400, 'Choose last month or an earlier month');
+  }
+  return normalized;
+};
+
+const scoreForMonth = (
+  enrollment: ReportingEnrollment,
+  month: string
+): { totalScore: number; averageScore: number } | null => {
+  let best: { totalScore: number; averageScore: number } | null = null;
+  enrollment.reports.forEach((report) => {
+    if (report.isAbsent || typeof report.totalScore !== 'number') return;
+    if (normalizeReportingMonth(report.month) !== month) return;
+    const averageScore = typeof report.averageScore === 'number' ? report.averageScore : Math.round(report.totalScore / 6);
+    if (!best || report.totalScore > best.totalScore) {
+      best = { totalScore: report.totalScore, averageScore };
+    }
+  });
+  return best;
+};
+
+/** One row per student for a single month. Two enrollments in that month keep the higher total. */
+export const pickStudentScoresForMonth = (enrollments: ReportingEnrollment[], month: string): StudentScoreRowInput[] => {
+  const target = normalizeReportingMonth(month);
+  if (!target) return [];
+  const byStudent = new Map<string, StudentScoreRowInput>();
+  enrollments.forEach((enrollment) => {
+    const scored = scoreForMonth(enrollment, target);
+    if (!scored) return;
+    const branch = enrollment.branch?.trim() || UNASSIGNED_BRANCH;
+    const picture = typeof enrollment.profilePicture === 'string' ? enrollment.profilePicture.trim() : '';
+    const next: StudentScoreRowInput = {
+      studentId: enrollment.studentId,
+      studentName: enrollment.studentName,
+      profilePicture: picture || null,
+      classId: enrollment.classId,
+      className: enrollment.className,
+      branch,
+      branchName: formatBranchName(branch),
+      instrument: enrollment.instrument?.trim() || UNSPECIFIED_INSTRUMENT,
+      totalScore: scored.totalScore,
+      averageScore: scored.averageScore,
+      month: target,
+    };
+    const current = byStudent.get(enrollment.studentId);
+    if (!current || next.totalScore > current.totalScore) {
+      byStudent.set(enrollment.studentId, next);
+    }
+  });
+  return [...byStudent.values()];
+};
+
+/** Competition ranks, highest total first. Equal scores share a rank. */
+export const rankStudentScores = (rows: StudentScoreRowInput[], currentUserId: string): RankedStudentScore[] => {
+  const sorted = [...rows].sort((left, right) => {
+    if (right.totalScore !== left.totalScore) return right.totalScore - left.totalScore;
+    const byName = left.studentName.localeCompare(right.studentName);
+    if (byName !== 0) return byName;
+    return left.studentId.localeCompare(right.studentId);
+  });
+
+  let previousScore: number | null = null;
+  let previousRank = 0;
+  return sorted.map((row, index) => {
+    const rank = previousScore === row.totalScore ? previousRank : index + 1;
+    previousScore = row.totalScore;
+    previousRank = rank;
+    return {
+      ...row,
+      rank,
+      monthLabel: formatMonthLabel(row.month),
+      isCurrentUser: row.studentId === currentUserId,
+    };
+  });
+};
 
 export const describeAppliedFilters = (
   branchResolution: { branches?: string[] },

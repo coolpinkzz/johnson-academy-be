@@ -42,6 +42,58 @@ const assertCourseExists = async (courseId: mongoose.Types.ObjectId | undefined,
   }
 };
 
+const isMissingSyllabusError = (error: unknown): boolean =>
+  error instanceof Error && error.message === 'No syllabi found for this course';
+
+/** One attendance document per student and class. Marking attendance fails without it. */
+const ensureStudentAttendance = async (studentId: mongoose.Types.ObjectId, classId: mongoose.Types.ObjectId) => {
+  const existing = await StudentAttendance.findOne({ studentId, classId });
+  if (existing) return existing;
+  return StudentAttendance.create({
+    studentId,
+    classId,
+    joiningDate: new Date(),
+  });
+};
+
+/**
+ * Link a student to a class. Attendance is written even when the course has no syllabus.
+ * Progress is created only when a syllabus exists.
+ */
+const attachEnrollmentRecords = async (
+  studentId: mongoose.Types.ObjectId,
+  classId: mongoose.Types.ObjectId,
+  courseId?: mongoose.Types.ObjectId | { _id?: mongoose.Types.ObjectId } | null
+) => {
+  const attendance = await ensureStudentAttendance(studentId, classId);
+  const resolvedCourseId = getObjectId(courseId as mongoose.Types.ObjectId);
+
+  const addToSet: Record<string, mongoose.Types.ObjectId> = { classes: classId };
+  if (resolvedCourseId) addToSet['courses'] = resolvedCourseId;
+  await User.findByIdAndUpdate(studentId, { $addToSet: addToSet });
+
+  let progress: IStudentProgressDoc | null = null;
+  if (resolvedCourseId) {
+    progress = await StudentProgress.findOne({ studentId, classId, courseId: resolvedCourseId });
+    if (!progress) {
+      try {
+        progress = await StudentProgress.createProgressForStudent(studentId, classId, resolvedCourseId);
+      } catch (error) {
+        if (!isMissingSyllabusError(error)) throw error;
+        console.error(
+          `Course ${resolvedCourseId.toString()} has no syllabus. Attendance created for student ${studentId.toString()} in class ${classId.toString()} without progress.`
+        );
+      }
+    }
+  }
+
+  if (progress) {
+    await User.findByIdAndUpdate(studentId, { $addToSet: { progress: progress._id } });
+  }
+
+  return { attendance, progress };
+};
+
 /**
  * Create a class
  * @param {NewCreatedClasses} classesBody
@@ -100,35 +152,14 @@ export const createClasses = async (classesBody: NewCreatedClasses): Promise<ICl
   //   }
   // }
 
-  // Create progress records and attendance records for all students added to the class and update user model
   if (createdClass.students && createdClass.students.length > 0) {
-    const progressPromises = createdClass.students.map(async (studentId) => {
-      // Create progress record
-      const progress = await StudentProgress.createProgressForStudent(studentId, createdClass._id, createdClass.courseId);
-
-      // Create attendance record with current date as joining date
-      const attendance = await StudentAttendance.create({
-        studentId,
-        classId: createdClass._id,
-        joiningDate: new Date(),
-      });
-
-      // Update user model to include the class, course, and progress references
-      await User.findByIdAndUpdate(studentId, {
-        $addToSet: {
-          classes: createdClass._id,
-          courses: createdClass.courseId,
-          progress: progress._id,
-        },
-      });
-
-      return { progress, attendance };
-    });
+    const enrollmentPromises = createdClass.students.map((studentId) =>
+      attachEnrollmentRecords(studentId, createdClass._id, createdClass.courseId)
+    );
 
     try {
-      await Promise.all(progressPromises);
+      await Promise.all(enrollmentPromises);
     } catch (error) {
-      // Log the error but don't fail the class creation
       console.error('Failed to create progress records, attendance records, or update user model for some students:', error);
     }
   }
@@ -362,35 +393,12 @@ export const updateClassesById = async (
           ? classes.courseId._id
           : classes.courseId;
 
-      const progressPromises = studentsToAdd.map(async (studentId) => {
-        // Create progress record
-        const progress = await StudentProgress.createProgressForStudent(
-          new mongoose.Types.ObjectId(studentId),
-          classesId,
-          courseId
-        );
-
-        // Create attendance record with current date as joining date
-        const attendance = await StudentAttendance.create({
-          studentId: new mongoose.Types.ObjectId(studentId),
-          classId: classesId,
-          joiningDate: new Date(),
-        });
-
-        // Update user model to include the class, course, and progress references
-        await User.findByIdAndUpdate(studentId, {
-          $addToSet: {
-            classes: classesId,
-            courses: courseId,
-            progress: progress._id,
-          },
-        });
-
-        return { progress, attendance };
-      });
+      const enrollmentPromises = studentsToAdd.map((studentId) =>
+        attachEnrollmentRecords(new mongoose.Types.ObjectId(studentId), classesId, courseId)
+      );
 
       try {
-        await Promise.all(progressPromises);
+        await Promise.all(enrollmentPromises);
       } catch (error) {
         console.error(
           'Failed to create progress records, attendance records, or update user model for some students:',
@@ -529,33 +537,13 @@ export const bulkAddStudentsToClass = async (
         ? classes.courseId._id
         : classes.courseId;
 
-    const progressPromises = newStudentIds.map(async (studentId) => {
-      // Create progress record
-      const progress = await StudentProgress.createProgressForStudent(studentId, classesId, courseId);
-
-      // Create attendance record with current date as joining date
-      const attendance = await StudentAttendance.create({
-        studentId: new mongoose.Types.ObjectId(studentId),
-        classId: classesId,
-        joiningDate: new Date(),
-      });
-
-      // Update user model to include the class, course, and progress references
-      await User.findByIdAndUpdate(studentId, {
-        $addToSet: {
-          classes: classesId,
-          courses: courseId,
-          progress: progress._id,
-        },
-      });
-
-      return { progress, attendance };
-    });
+    const enrollmentPromises = newStudentIds.map((studentId) =>
+      attachEnrollmentRecords(new mongoose.Types.ObjectId(studentId), classesId, courseId)
+    );
 
     try {
-      await Promise.all(progressPromises);
+      await Promise.all(enrollmentPromises);
     } catch (error) {
-      // Log the error but don't fail the student addition
       console.error('Failed to create progress records, attendance records, or update user model for some students:', error);
     }
   }
@@ -622,11 +610,6 @@ export const addSingleStudentToClass = async (
     throw new ApiError(httpStatus.CONFLICT, 'Progress record already exists for this student, class, and course');
   }
 
-  const isNewToClass = !(classes.students ?? []).some((s) => {
-    const sid = getObjectId(s as mongoose.Types.ObjectId);
-    return sid?.toString() === studentId.toString();
-  });
-
   // Add the student to the class also add to students array
   const updatedClasses = await Classes.findByIdAndUpdate(
     classesId,
@@ -634,28 +617,19 @@ export const addSingleStudentToClass = async (
     { new: true }
   );
 
-  const progress = await StudentProgress.createProgressForStudent(studentId, classesId, courseId);
+  const { progress, attendance } = await attachEnrollmentRecords(studentId, classesId, courseId);
 
-  let attendance = await StudentAttendance.findOne({ studentId, classId: classesId });
-  if (!attendance) {
-    attendance = await StudentAttendance.create({
-      studentId: new mongoose.Types.ObjectId(studentId),
-      classId: classesId,
-      joiningDate: new Date(),
-    });
-  }
-
-  if (isNewToClass) {
-    await User.findByIdAndUpdate(studentId, {
-      $addToSet: { classes: classesId, courses: courseId, progress: progress._id },
-    });
-  } else {
-    await User.findByIdAndUpdate(studentId, {
-      $addToSet: { courses: courseId, progress: progress._id },
-    });
-  }
-
-  return { updatedClasses, progress, attendance };
+  return {
+    updatedClasses,
+    progress,
+    attendance,
+    ...(progress
+      ? {}
+      : {
+          warning:
+            'Attendance was created. This course has no syllabus, so student progress was not created.',
+        }),
+  };
 };
 
 /**

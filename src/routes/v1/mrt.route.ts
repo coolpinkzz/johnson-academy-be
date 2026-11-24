@@ -52,6 +52,12 @@ router.get(
   validate(reportingValidation.getMrtReportingRecords),
   reportingController.getRecords
 );
+router.get(
+  '/reporting/student-leaderboard',
+  auth('getMRT'),
+  validate(reportingValidation.getStudentScoreLeaderboard),
+  reportingController.getStudentLeaderboard
+);
 
 router.get('/', mrtController.getMRTs);
 

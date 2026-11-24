@@ -4,7 +4,14 @@ import catchAsync from '../utils/catchAsync';
 import ApiError from '../errors/ApiError';
 import { staffRoles } from '../../config/roles';
 import { IUserDoc } from '../user/user.interfaces';
-import { LeaderboardSortField, MonthSortField, RecordSortField, ReportStatus, SortOrder } from './mrt.reporting.interfaces';
+import {
+  LeaderboardSortField,
+  MonthSortField,
+  RecordSortField,
+  ReportStatus,
+  SortOrder,
+  StudentLeaderboardScope,
+} from './mrt.reporting.interfaces';
 import * as reportingService from './mrt.reporting.service';
 
 const requireStaff = (req: Request): IUserDoc => {
@@ -111,6 +118,29 @@ export const getInstruments = catchAsync(async (req: Request, res: Response) => 
       ...reportingQuery(req),
       ...(sortBy ? { sortBy } : {}),
       ...(sortOrder ? { sortOrder } : {}),
+    })
+  );
+});
+
+export const getStudentLeaderboard = catchAsync(async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate');
+  }
+  if (req.user.role !== 'student') {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden');
+  }
+  const scope = readString(req.query['scope']) as StudentLeaderboardScope | undefined;
+  const classId = readString(req.query['classId']);
+  const branch = readString(req.query['branch']);
+  const instrument = readString(req.query['instrument']);
+  const month = readString(req.query['month']);
+  res.status(httpStatus.OK).send(
+    await reportingService.getStudentScoreLeaderboard(String(req.user.id), {
+      ...(scope ? { scope } : {}),
+      ...(classId ? { classId } : {}),
+      ...(branch ? { branch } : {}),
+      ...(instrument ? { instrument } : {}),
+      ...(month ? { month } : {}),
     })
   );
 });

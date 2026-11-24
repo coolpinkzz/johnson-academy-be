@@ -70,6 +70,7 @@ export interface ReportingEnrollment {
   courseName: string;
   instrument: string | null;
   enrolledAt: Date | string | null;
+  profilePicture?: string | null;
   reports: ReportingReport[];
 }
 
@@ -186,4 +187,76 @@ export interface PaginatedRecords {
   limit: number;
   totalPages: number;
   totalResults: number;
+}
+
+export type StudentLeaderboardScope = 'class' | 'branch' | 'instrument' | 'overall';
+
+export interface StudentScoreRowInput {
+  studentId: string;
+  studentName: string;
+  profilePicture: string | null;
+  classId: string;
+  className: string;
+  branch: string;
+  branchName: string;
+  instrument: string;
+  totalScore: number;
+  averageScore: number;
+  month: string;
+}
+
+export interface RankedStudentScore extends StudentScoreRowInput {
+  rank: number;
+  monthLabel: string;
+  isCurrentUser: boolean;
+}
+
+export interface StudentLeaderboardClassOption {
+  classId: string;
+  className: string;
+}
+
+export interface StudentLeaderboardBranchOption {
+  branch: string;
+  branchName: string;
+}
+
+export interface StudentLeaderboardMonthOption {
+  month: string;
+  label: string;
+}
+
+export interface StudentLeaderboardViewer {
+  rank: number | null;
+  totalScore: number | null;
+  averageScore: number | null;
+  month: string | null;
+  monthLabel: string | null;
+}
+
+export interface StudentScoreLeaderboard {
+  scope: StudentLeaderboardScope;
+  scopeLabel: string;
+  scoreBasis: 'monthly-total';
+  month: string;
+  monthLabel: string;
+  options: {
+    classes: StudentLeaderboardClassOption[];
+    branches: StudentLeaderboardBranchOption[];
+    instruments: string[];
+    months: StudentLeaderboardMonthOption[];
+  };
+  selected: {
+    classId: string | null;
+    className: string | null;
+    branch: string | null;
+    branchName: string | null;
+    instrument: string | null;
+    month: string;
+  };
+  viewer: StudentLeaderboardViewer;
+  results: RankedStudentScore[];
+  totalResults: number;
+  shownResults: number;
+  truncated: boolean;
 }
